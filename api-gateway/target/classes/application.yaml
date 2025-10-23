@@ -3,8 +3,6 @@ server:
 
 app:
   api-prefix: /api/v1
-  service:
-    identity: http://localhost:8080/identity
 
 spring:
   application:

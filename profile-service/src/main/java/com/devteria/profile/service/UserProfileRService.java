@@ -1,5 +1,6 @@
 package com.devteria.profile.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -37,6 +38,12 @@ public class UserProfileRService {
         UserProfile userProfile =
                 userProfileRepository.findById(id).orElseThrow(() -> new RuntimeException("Profile id not found"));
         return userProfileMapper.toUserProfileResponse(userProfile);
+    }
+
+    public List<UserProfileResponse> getAllProfiles() {
+        var profiles = userProfileRepository.findAll();
+
+        return profiles.stream().map(userProfileMapper::toUserProfileResponse).toList();
     }
 
     public UserProfileResponse updateProfile(UUID id, ProfileUpdateRequest request) {

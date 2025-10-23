@@ -58,7 +58,9 @@ public class UserService {
 
         UserProfileResponse profileResponse = profileClient.createProfile(profileRequest);
 
-        return userMapper.toUserResponse(user);
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        userResponse.setProfileResponse(profileResponse);
+        return userResponse;
     }
 
     public UserResponse getMyInfo() {
