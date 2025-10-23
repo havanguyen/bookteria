@@ -1,9 +1,11 @@
 package com.devteria.profile.service;
 
-import com.devteria.profile.dto.request.ProfileUpdateRequest;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.devteria.profile.dto.request.ProfileCreationRequest;
+import com.devteria.profile.dto.request.ProfileUpdateRequest;
 import com.devteria.profile.dto.response.UserProfileResponse;
 import com.devteria.profile.entity.UserProfile;
 import com.devteria.profile.mapper.UserProfileMapper;
@@ -13,8 +15,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +40,8 @@ public class UserProfileRService {
     }
 
     public UserProfileResponse updateProfile(UUID id, ProfileUpdateRequest request) {
-        UserProfile userProfile = userProfileRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Profile id not found"));
+        UserProfile userProfile =
+                userProfileRepository.findById(id).orElseThrow(() -> new RuntimeException("Profile id not found"));
 
         userProfileMapper.updateUserProfile(userProfile, request);
 
