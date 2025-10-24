@@ -1,4 +1,4 @@
-package com.devteria.identity.configuration;
+package com.devteria.profile.configuration;
 
 import java.text.ParseException;
 

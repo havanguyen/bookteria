@@ -3,6 +3,8 @@ package com.devteria.profile.controller;
 import java.util.List;
 import java.util.UUID;
 
+import com.devteria.profile.dto.response.ApiResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.devteria.profile.dto.request.ProfileUpdateRequest;
@@ -21,23 +23,31 @@ public class UserProfileController {
     UserProfileRService userProfileRService;
 
     @GetMapping("/users/{profileId}")
-    UserProfileResponse getProfile(@PathVariable String profileId) {
-        return userProfileRService.getProfile(UUID.fromString(profileId));
+    ApiResponse<UserProfileResponse> getProfile(@PathVariable String profileId) {
+        return ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileRService.getProfile(UUID.fromString(profileId)))
+                .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")
-    List<UserProfileResponse> getAllProfiles() {
-        return userProfileRService.getAllProfiles();
+    ApiResponse<List<UserProfileResponse>> getAllProfiles() {
+        return ApiResponse.<List<UserProfileResponse>>builder()
+                .result(userProfileRService.getAllProfiles())
+                .build();
     }
 
     @PutMapping("/users/{profileId}")
-    UserProfileResponse updateProfile(@PathVariable String profileId, @RequestBody ProfileUpdateRequest request) {
-        return userProfileRService.updateProfile(UUID.fromString(profileId), request);
+    ApiResponse<UserProfileResponse> updateProfile(@PathVariable String profileId, @RequestBody ProfileUpdateRequest request) {
+      return  ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileRService.
+                                updateProfile(UUID.fromString(profileId), request))
+                .build();
     }
 
     @DeleteMapping("/users/{profileId}")
-    String deleteProfile(@PathVariable String profileId) {
+    ApiResponse<String> deleteProfile(@PathVariable String profileId) {
         userProfileRService.deleteProfile(UUID.fromString(profileId));
-        return "Profile has been deleted";
+        return ApiResponse.<String>builder().result("Profile has been deleted").build();
     }
 }
