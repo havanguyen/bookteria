@@ -1,7 +1,9 @@
 package com.devteria.gateway.config;
 
+import com.devteria.gateway.dto.request.ApiResponse;
 import com.devteria.gateway.service.IdentityService;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -9,15 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.server.HttpServerResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.List;
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     IdentityService identityService;
+    ObjectMapper objectMapper;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -36,18 +39,27 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         List<String> authHeader =
                 exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
 
-        if(CollectionUtils.isEmpty(authHeader))
+        if (CollectionUtils.isEmpty(authHeader)) {
             return unauthenticated(exchange.getResponse());
+        }
 
-        String token = authHeader.getFirst().replace("Bearer " ,"");
+        String token = authHeader.getFirst().replace("Bearer ", "");
+        log.info("Token: {}", token);
 
-        log.info(token);
+        return identityService.introspect(token)
+                .flatMap(introspectResponse -> {
+                    log.info("Introspection result: {}", introspectResponse.getResult().isValid());
+                    if (introspectResponse.getResult().isValid()) {
+                        return chain.filter(exchange);
+                    } else {
 
-        identityService.introspect(token);
-
-
-
-        return chain.filter(exchange);
+                        return unauthenticated(exchange.getResponse());
+                    }
+                })
+                .onErrorResume(throwable -> {
+                    log.error("Error during token introspection", throwable);
+                    return unauthenticated(exchange.getResponse());
+                });
     }
 
     @Override
@@ -55,12 +67,23 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         return -1;
     }
 
-    private Mono<Void> unauthenticated(ServerHttpResponse httpResponse){
+    private Mono<Void> unauthenticated(ServerHttpResponse httpResponse) {
+        ApiResponse<?> apiResponse = ApiResponse.builder()
+                .code(1401)
+                .message("Unauthenticated")
+                .build();
 
-        String body = "Unauthenticated";
-        httpResponse.setStatusCode(HttpStatus.UNAUTHORIZED);
-
-        return  httpResponse.writeWith(
-                Mono.just(httpResponse.bufferFactory().wrap(body.getBytes())));
+        return Mono.fromCallable(() -> objectMapper.writeValueAsString(apiResponse))
+                .flatMap(body -> {
+                    httpResponse.setStatusCode(HttpStatus.UNAUTHORIZED);
+                    httpResponse.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                    DataBuffer buffer = httpResponse.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
+                    return httpResponse.writeWith(Mono.just(buffer));
+                })
+                .onErrorResume(JsonProcessingException.class, exception -> {
+                    log.error("Error writing unauthenticated response", exception);
+                    httpResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                    return httpResponse.setComplete();
+                });
     }
 }

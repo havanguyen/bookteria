@@ -11,7 +11,7 @@ import org.springframework.web.service.annotation.PostExchange;
 import reactor.core.publisher.Mono;
 
 
-@FeignClient(name = "identity-service", url = "${app.service.identity}")
+@FeignClient(name = "identity-service" )
 public interface IdentityClient {
     @PostExchange(url = "/auth/introspect" , contentType = MediaType.APPLICATION_JSON_VALUE)
     Mono<ApiResponse<IntrospectResponse>> introspect(
