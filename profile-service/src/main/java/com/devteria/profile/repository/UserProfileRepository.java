@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 
 import com.devteria.profile.entity.UserProfile;
 
-@Repository // khong yeu cau , tuy nhien can de biet cai nay dung de lam gi
+@Repository
 public interface UserProfileRepository extends Neo4jRepository<UserProfile, UUID> {}

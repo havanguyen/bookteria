@@ -17,5 +17,6 @@ spring:
 jwt:
   signerKey: "1TjXchw5FloESb63Kc+DFhTARvpWL4jUGCwfGWxuG5SIf/1y/LgJxHnMqaF6A/ij"
 app:
+  internal-token: "F56sYY3VpE2l3Wcsy3n3hcoRyjk1cyqhFtvqW9p7FX3fytq7x3Kl8rD7vRfsUCU9fE28fZTMY5C0ATXfVHzalw=="
   service:
     profile: http://localhost:8081/profile
