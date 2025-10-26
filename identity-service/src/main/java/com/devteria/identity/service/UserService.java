@@ -2,6 +2,8 @@ package com.devteria.identity.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -69,7 +71,16 @@ public class UserService {
 
         User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        return userMapper.toUserResponse(user);
+        UserProfileResponse profileResponse = null;
+        try {
+            profileResponse = profileClient.getProfileByUserId(user.getId());
+        } catch (Exception e) {
+            log.warn("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        userResponse.setProfileResponse(profileResponse);
+        return userResponse;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -82,7 +93,19 @@ public class UserService {
         var roles = roleRepository.findAllById(request.getRoles());
         user.setRoles(new HashSet<>(roles));
 
-        return userMapper.toUserResponse(userRepository.save(user));
+        user = userRepository.save(user);
+
+        UserProfileResponse profileResponse = null;
+        try {
+            profileResponse = profileClient.getProfileByUserId(user.getId());
+        } catch (Exception e) {
+            log.warn("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        userResponse.setProfileResponse(profileResponse);
+
+        return userResponse;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -93,12 +116,47 @@ public class UserService {
     @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getUsers() {
         log.info("In method get Users");
-        return userRepository.findAll().stream().map(userMapper::toUserResponse).toList();
+        var users = userRepository.findAll();
+        if (users.isEmpty()) {
+            return List.of();
+        }
+
+        var userIds = users.stream().map(User::getId).toList();
+
+        List<UserProfileResponse> profiles = List.of();
+        try {
+            profiles = profileClient.getProfilesByUserIds(userIds);
+        } catch (Exception e) {
+            log.warn("Unable to fetch bulk profiles: {}", e.getMessage());
+        }
+
+        Map<String, UserProfileResponse> profileMap = profiles.stream()
+                .collect(Collectors.toMap(
+                        UserProfileResponse::getUserId,
+                        p -> p,
+                        (p1, p2) -> p1
+                ));
+
+        return users.stream().map(user -> {
+            UserResponse userResponse = userMapper.toUserResponse(user);
+            userResponse.setProfileResponse(profileMap.get(user.getId()));
+            return userResponse;
+        }).toList();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse getUser(String id) {
-        return userMapper.toUserResponse(
-                userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
+        User user = userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        UserProfileResponse profileResponse = null;
+        try {
+            profileResponse = profileClient.getProfileByUserId(user.getId());
+        } catch (Exception e) {
+            log.warn("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        userResponse.setProfileResponse(profileResponse);
+        return userResponse;
     }
 }

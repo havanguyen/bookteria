@@ -24,10 +24,19 @@ public class UserProfileController {
 
     @GetMapping("/users/{profileId}")
     ApiResponse<UserProfileResponse> getProfile(@PathVariable String profileId) {
-        return ApiResponse.<UserProfileResponse>builder()
-                .result(userProfileRService.getProfile(UUID.fromString(profileId)))
-                .build();
+        try {
+            UUID uuid = UUID.fromString(profileId);
+            return ApiResponse.<UserProfileResponse>builder()
+                    .result(userProfileRService.getProfile(uuid))
+                    .build();
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.<UserProfileResponse>builder()
+                    .code(9999)
+                    .message("Invalid Profile ID format")
+                    .build();
+        }
     }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")
@@ -37,17 +46,24 @@ public class UserProfileController {
                 .build();
     }
 
-    @PutMapping("/users/{profileId}")
-    ApiResponse<UserProfileResponse> updateProfile(@PathVariable String profileId, @RequestBody ProfileUpdateRequest request) {
-      return  ApiResponse.<UserProfileResponse>builder()
-                .result(userProfileRService.
-                                updateProfile(UUID.fromString(profileId), request))
+    @PutMapping("/users/by-user/{userId}")
+    ApiResponse<UserProfileResponse> updateProfileByUserId(@PathVariable String userId, @RequestBody ProfileUpdateRequest request) {
+        return  ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileRService.updateProfileByUserId(userId, request))
                 .build();
     }
 
     @DeleteMapping("/users/{profileId}")
     ApiResponse<String> deleteProfile(@PathVariable String profileId) {
-        userProfileRService.deleteProfile(UUID.fromString(profileId));
-        return ApiResponse.<String>builder().result("Profile has been deleted").build();
+        try {
+            UUID uuid = UUID.fromString(profileId);
+            userProfileRService.deleteProfile(uuid);
+            return ApiResponse.<String>builder().result("Profile has been deleted").build();
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.<String>builder()
+                    .code(9999)
+                    .message("Invalid Profile ID format for deletion")
+                    .build();
+        }
     }
 }

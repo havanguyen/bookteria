@@ -17,7 +17,7 @@ public class InternalRequestFilter extends OncePerRequestFilter {
     private String expectedToken;
 
     private static final String[] INTERNAL_ENDPOINTS = {
-            "/internal/users"
+            "/internal/users" , "/internal/users/**"
     };
 
     @Override

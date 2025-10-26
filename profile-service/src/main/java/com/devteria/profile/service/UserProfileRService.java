@@ -2,8 +2,10 @@ package com.devteria.profile.service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.devteria.profile.dto.request.ProfileCreationRequest;
 import com.devteria.profile.dto.request.ProfileUpdateRequest;
@@ -25,12 +27,16 @@ public class UserProfileRService {
     UserProfileRepository userProfileRepository;
     UserProfileMapper userProfileMapper;
 
+    @Transactional("transactionManager") // Chỉ định transaction manager
     public UserProfileResponse createProfile(ProfileCreationRequest profileCreationRequest) {
+        userProfileRepository.findByUserId(profileCreationRequest.getUserId()).ifPresent(p -> {
+            log.warn("Profile already exists for userId: {}", profileCreationRequest.getUserId());
+
+        });
 
         UserProfile userProfile = userProfileMapper.toUserProfile(profileCreationRequest);
-
         userProfile = userProfileRepository.save(userProfile);
-
+        log.info("Created new profile with ID: {} for User ID: {}", userProfile.getId(), userProfile.getUserId());
         return userProfileMapper.toUserProfileResponse(userProfile);
     }
 
@@ -46,16 +52,47 @@ public class UserProfileRService {
         return profiles.stream().map(userProfileMapper::toUserProfileResponse).toList();
     }
 
-    public UserProfileResponse updateProfile(UUID id, ProfileUpdateRequest request) {
-        UserProfile userProfile =
-                userProfileRepository.findById(id).orElseThrow(() -> new RuntimeException("Profile id not found"));
+    @Transactional("transactionManager") // Chỉ định transaction manager
+    public UserProfileResponse updateProfileByUserId(String userId, ProfileUpdateRequest request) {
+        UserProfile userProfile = userProfileRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    log.info("Profile not found for userId: {}. Creating a new one.", userId);
+                    ProfileCreationRequest creationRequest = ProfileCreationRequest.builder()
+                            .userId(userId)
+                            .firstName(request.getFirstName())
+                            .lastName(request.getLastName())
+                            .dob(request.getDob())
+                            .city(request.getCity())
+                            .build();
+                    return userProfileMapper.toUserProfile(creationRequest);
+                });
 
         userProfileMapper.updateUserProfile(userProfile, request);
+        userProfile.setUserId(userId);
 
-        return userProfileMapper.toUserProfileResponse(userProfileRepository.save(userProfile));
+        UserProfile savedProfile = userProfileRepository.save(userProfile);
+        log.info("Updated/Created profile with ID: {} for User ID: {}", savedProfile.getId(), savedProfile.getUserId());
+        return userProfileMapper.toUserProfileResponse(savedProfile);
     }
+
 
     public void deleteProfile(UUID id) {
         userProfileRepository.deleteById(id);
+    }
+
+    public UserProfileResponse getProfileByUserId(String userId) {
+        UserProfile userProfile = userProfileRepository.findByUserId(userId).orElse(null);
+        if (userProfile == null) {
+            log.warn("No profile found for userId: {}", userId);
+            return null;
+        }
+        return userProfileMapper.toUserProfileResponse(userProfile);
+    }
+
+    public List<UserProfileResponse> getProfilesByUserIds(List<String> userIds) {
+        var profiles = userProfileRepository.findByUserIdIn(userIds);
+        return profiles.stream()
+                .map(userProfileMapper::toUserProfileResponse)
+                .collect(Collectors.toList());
     }
 }
