@@ -46,7 +46,7 @@ public class EmailService {
         log.info(emailRequest.toString());
         try {
             return sentEmailClient.sentEmail(emailRequest);
-        } //
+        }
         catch (FeignException e){
             log.error("FeignException when calling Brevo. Status: {}. Body: {}", e.status(), e.contentUTF8(), e);
             throw new AppException(ErrorCode.CANT_NOT_SENT_EMAIL);
