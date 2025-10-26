@@ -1,9 +1,7 @@
-package com.devteria.identity.dto.request;
+package com.devteria.notification.dto.response;
 
 import java.time.LocalDate;
-import java.util.List;
-
-import com.devteria.identity.validator.DobConstraint;
+import java.util.UUID;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -13,14 +11,11 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserUpdateRequest {
-    String password;
+public class UserProfileResponse {
+    UUID id;
+    String userId;
     String firstName;
     String lastName;
-
-    @DobConstraint(min = 10, message = "INVALID_DOB")
     LocalDate dob;
-
-    List<String> roles;
     String city;
 }

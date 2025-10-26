@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.devteria.identity.dto.request.ProfileUpdateRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +69,7 @@ public class UserService {
 
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
-        String name = context.getAuthentication().getName();
+        String name = context.getAuthentication().getName(); // trả về user name
 
         User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
@@ -85,21 +87,38 @@ public class UserService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse updateUser(String userId, UserUpdateRequest request) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         userMapper.updateUser(user, request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (StringUtils.hasText(request.getPassword())) {
+            try {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            } catch (IllegalArgumentException e) {
+                log.error("Password encoding failed for user {}: {}", userId, e.getMessage());
 
-        var roles = roleRepository.findAllById(request.getRoles());
-        user.setRoles(new HashSet<>(roles));
+                throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+            }
+        }
+        if (request.getRoles() != null) {
+            var roles = roleRepository.findAllById(request.getRoles());
+            user.setRoles(new HashSet<>(roles));
+        }
 
         user = userRepository.save(user);
 
         UserProfileResponse profileResponse = null;
         try {
-            profileResponse = profileClient.getProfileByUserId(user.getId());
+            ProfileUpdateRequest profileUpdateRequest = ProfileUpdateRequest.builder()
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
+                    .dob(request.getDob())
+                    .city(request.getCity())
+                    .build();
+            profileResponse = profileClient.updateProfileByUserId(userId, profileUpdateRequest);
+            log.info("Profile update called for userId: {}", userId);
         } catch (Exception e) {
-            log.warn("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
+            log.error("Failed to update profile for user {}: {}", userId, e.getMessage());
         }
 
         UserResponse userResponse = userMapper.toUserResponse(user);
