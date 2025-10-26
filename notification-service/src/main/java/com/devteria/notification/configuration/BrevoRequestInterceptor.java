@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 public class BrevoRequestInterceptor implements RequestInterceptor {
 
-    @Value("${brevo.mcp.brevo-key}")
+    @Value("${brevo.mcp.brevo}")
     private String brevoToken;
 
     @Override
