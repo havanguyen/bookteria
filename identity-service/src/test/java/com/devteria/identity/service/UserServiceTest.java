@@ -52,24 +52,20 @@ public class UserServiceTest {
         userResponse = UserResponse.builder()
                 .id("cf0600f538b3")
                 .username("john")
-                .firstName("John")
-                .lastName("Doe")
-                .dob(dob)
+                .username("John")
                 .build();
 
         user = User.builder()
                 .id("cf0600f538b3")
                 .username("john")
-                .firstName("John")
-                .lastName("Doe")
-                .dob(dob)
+                .username("John")
                 .build();
     }
 
     @Test
     void createUser_validRequest_success() {
         // GIVEN
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByUsernameAndIsActiveTrue(anyString())).thenReturn(false);
         when(userRepository.save(any())).thenReturn(user);
 
         // WHEN
@@ -83,7 +79,7 @@ public class UserServiceTest {
     @Test
     void createUser_userExisted_fail() {
         // GIVEN
-        when(userRepository.existsByUsername(anyString())).thenReturn(true);
+        when(userRepository.existsByUsernameAndIsActiveTrue(anyString())).thenReturn(true);
 
         // WHEN
         var exception = assertThrows(AppException.class, () -> userService.createUser(request));
@@ -95,7 +91,7 @@ public class UserServiceTest {
     @Test
     @WithMockUser(username = "john")
     void getMyInfo_valid_success() {
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(user));
+        when(userRepository.findByUsernameAndIsActiveTrue(anyString())).thenReturn(Optional.of(user));
 
         var response = userService.getMyInfo();
 
@@ -106,7 +102,7 @@ public class UserServiceTest {
     @Test
     @WithMockUser(username = "john")
     void getMyInfo_userNotFound_error() {
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.ofNullable(null));
+        when(userRepository.findByUsernameAndIsActiveTrue(anyString())).thenReturn(Optional.ofNullable(null));
 
         // WHEN
         var exception = assertThrows(AppException.class, () -> userService.getMyInfo());

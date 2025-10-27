@@ -22,6 +22,9 @@ public class User {
     String username;
     String password;
 
+    @Builder.Default
+    boolean isActive = true;
+
     @ManyToMany
     Set<Role> roles;
 }

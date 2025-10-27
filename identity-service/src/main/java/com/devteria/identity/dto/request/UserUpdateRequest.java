@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.devteria.identity.validator.DobConstraint;
 
+import jakarta.validation.constraints.Email;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -18,9 +19,14 @@ public class UserUpdateRequest {
     String firstName;
     String lastName;
 
+    @Email(message = "INVALID_EMAIL_FORMAT")
+    String email;
+
     @DobConstraint(min = 10, message = "INVALID_DOB")
     LocalDate dob;
 
     List<String> roles;
     String city;
+
+    Boolean isActive;
 }

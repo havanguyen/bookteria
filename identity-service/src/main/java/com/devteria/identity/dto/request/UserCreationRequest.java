@@ -2,6 +2,8 @@ package com.devteria.identity.dto.request;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import com.devteria.identity.validator.DobConstraint;
@@ -28,4 +30,8 @@ public class UserCreationRequest {
     LocalDate dob;
 
     String city;
+
+    @NotBlank(message = "EMAIL_REQUIRED")
+    @Email(message = "INVALID_EMAIL_FORMAT")
+    String email;
 }

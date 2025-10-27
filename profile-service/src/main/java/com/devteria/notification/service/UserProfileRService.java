@@ -27,7 +27,7 @@ public class UserProfileRService {
     UserProfileRepository userProfileRepository;
     UserProfileMapper userProfileMapper;
 
-    @Transactional("transactionManager") // Chỉ định transaction manager
+    @Transactional("transactionManager")
     public UserProfileResponse createProfile(ProfileCreationRequest profileCreationRequest) {
         userProfileRepository.findByUserId(profileCreationRequest.getUserId()).ifPresent(p -> {
             log.warn("Profile already exists for userId: {}", profileCreationRequest.getUserId());
@@ -52,7 +52,7 @@ public class UserProfileRService {
         return profiles.stream().map(userProfileMapper::toUserProfileResponse).toList();
     }
 
-    @Transactional("transactionManager") // Chỉ định transaction manager
+    @Transactional("transactionManager")
     public UserProfileResponse updateProfileByUserId(String userId, ProfileUpdateRequest request) {
         UserProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseGet(() -> {

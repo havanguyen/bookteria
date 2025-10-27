@@ -3,6 +3,7 @@ package com.devteria.identity.dto.request;
 import java.time.LocalDate;
 
 import com.devteria.identity.validator.DobConstraint;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -17,5 +18,6 @@ public class ProfileUpdateRequest {
 
     @DobConstraint(min = 10, message = "INVALID_DOB")
     LocalDate dob;
+    String email;
     String city;
 }

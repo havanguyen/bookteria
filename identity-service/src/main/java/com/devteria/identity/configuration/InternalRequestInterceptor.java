@@ -1,8 +1,9 @@
 package com.devteria.identity.configuration;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
-import org.springframework.beans.factory.annotation.Value;
 
 public class InternalRequestInterceptor implements RequestInterceptor {
 

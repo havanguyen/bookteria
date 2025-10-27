@@ -1,6 +1,4 @@
-package com.devteria.notification.dto.request;
-
-import java.time.LocalDate;
+package com.devteria.notification.dto.event;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -10,12 +8,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProfileCreationRequest {
-
+public class UserEvent {
     String userId;
-    String firstName;
-    String lastName;
-    LocalDate dob;
-    String city;
+    String username;
     String email;
+    String firstName;
+    String typeEvent;
 }

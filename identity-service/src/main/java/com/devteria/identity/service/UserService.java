@@ -5,14 +5,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.devteria.identity.dto.request.ProfileUpdateRequest;
+import com.devteria.identity.constant.TypeEvent;
+import com.devteria.identity.dto.event.UserEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.devteria.identity.constant.PredefinedRole;
 import com.devteria.identity.dto.request.ProfileCreationRequest;
+import com.devteria.identity.dto.request.ProfileUpdateRequest;
 import com.devteria.identity.dto.request.UserCreationRequest;
 import com.devteria.identity.dto.request.UserUpdateRequest;
 import com.devteria.identity.dto.response.UserProfileResponse;
@@ -30,7 +33,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -42,9 +44,11 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     ProfileClient profileClient;
+    UserEventProducerService userEventProducerService;
 
     public UserResponse createUser(UserCreationRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) throw new AppException(ErrorCode.USER_EXISTED);
+        if (userRepository.existsByUsernameAndIsActiveTrue(request.getUsername()))
+            throw new AppException(ErrorCode.USER_EXISTED);
 
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -62,6 +66,23 @@ public class UserService {
 
         UserProfileResponse profileResponse = profileClient.createProfile(profileRequest);
 
+        if (profileResponse != null && profileResponse.getEmail() != null) {
+            try {
+                UserEvent event = UserEvent.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .firstName(profileResponse.getFirstName())
+                        .email(profileResponse.getEmail())
+                        .typeEvent(TypeEvent.CREATE.getEvent())
+                        .build();
+                userEventProducerService.sendUserCreationEvent(event);
+            } catch (Exception e) {
+                log.error("Failed to send user creation event for user ID {}: {}", user.getId(), e.getMessage(), e);
+            }
+        } else {
+            log.warn("Profile response or email is null for user ID {}. Skipping Kafka event.", user.getId());
+        }
+
         UserResponse userResponse = userMapper.toUserResponse(user);
         userResponse.setProfileResponse(profileResponse);
         return userResponse;
@@ -69,9 +90,9 @@ public class UserService {
 
     public UserResponse getMyInfo() {
         var context = SecurityContextHolder.getContext();
-        String name = context.getAuthentication().getName(); // trả về user name
+        String name = context.getAuthentication().getName();
 
-        User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findByUsernameAndIsActiveTrue(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         UserProfileResponse profileResponse = null;
         try {
@@ -87,8 +108,7 @@ public class UserService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse updateUser(String userId, UserUpdateRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         userMapper.updateUser(user, request);
         if (StringUtils.hasText(request.getPassword())) {
@@ -105,6 +125,10 @@ public class UserService {
             user.setRoles(new HashSet<>(roles));
         }
 
+        if (request.getIsActive() != null) {
+            user.setActive(request.getIsActive());
+        }
+
         user = userRepository.save(user);
 
         UserProfileResponse profileResponse = null;
@@ -114,11 +138,29 @@ public class UserService {
                     .lastName(request.getLastName())
                     .dob(request.getDob())
                     .city(request.getCity())
+                    .email(request.getEmail())
                     .build();
             profileResponse = profileClient.updateProfileByUserId(userId, profileUpdateRequest);
             log.info("Profile update called for userId: {}", userId);
         } catch (Exception e) {
             log.error("Failed to update profile for user {}: {}", userId, e.getMessage());
+        }
+
+        if (profileResponse != null && profileResponse.getEmail() != null) {
+            try {
+                UserEvent event = UserEvent.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .firstName(profileResponse.getFirstName())
+                        .email(profileResponse.getEmail())
+                        .typeEvent(TypeEvent.UPDATE.getEvent())
+                        .build();
+                userEventProducerService.sendUserCreationEvent(event);
+            } catch (Exception e) {
+                log.error("Failed to send user creation event for user ID {}: {}", user.getId(), e.getMessage(), e);
+            }
+        } else {
+            log.warn("Profile response or email is null for user ID {}. Skipping Kafka event.", user.getId());
         }
 
         UserResponse userResponse = userMapper.toUserResponse(user);
@@ -129,7 +171,34 @@ public class UserService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(String userId) {
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        UserProfileResponse profileResponse = null;
+        try {
+            profileResponse = profileClient.getProfileByUserId(userId);
+        } catch (Exception e) {
+            log.warn("Failed to fetch profile for user {} during deletion. Event will lack email.", userId, e);
+        }
+
+        user.setActive(false);
+        userRepository.save(user);
+
+        if (profileResponse != null && StringUtils.hasText(profileResponse.getEmail())) {
+            try {
+                UserEvent event = UserEvent.builder()
+                        .userId(user.getId())
+                        .typeEvent(TypeEvent.DELETE.getEvent())
+                        .username(user.getUsername())
+                        .email(profileResponse.getEmail())
+                        .build();
+                userEventProducerService.sendUserDeleteEvent(event);
+            } catch (Exception e) {
+                log.error("Failed to send user deletion event for user ID {}: {}", user.getId(), e.getMessage());
+            }
+        } else {
+            log.warn("Skipping Kafka deletion event for user {} due to missing profile or email.", userId);
+        }
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -149,18 +218,16 @@ public class UserService {
             log.warn("Unable to fetch bulk profiles: {}", e.getMessage());
         }
 
-        Map<String, UserProfileResponse> profileMap = profiles.stream()
-                .collect(Collectors.toMap(
-                        UserProfileResponse::getUserId,
-                        p -> p,
-                        (p1, p2) -> p1
-                ));
+        Map<String, UserProfileResponse> profileMap =
+                profiles.stream().collect(Collectors.toMap(UserProfileResponse::getUserId, p -> p, (p1, p2) -> p1));
 
-        return users.stream().map(user -> {
-            UserResponse userResponse = userMapper.toUserResponse(user);
-            userResponse.setProfileResponse(profileMap.get(user.getId()));
-            return userResponse;
-        }).toList();
+        return users.stream()
+                .map(user -> {
+                    UserResponse userResponse = userMapper.toUserResponse(user);
+                    userResponse.setProfileResponse(profileMap.get(user.getId()));
+                    return userResponse;
+                })
+                .toList();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
