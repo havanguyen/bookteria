@@ -3,9 +3,10 @@ package com.devteria.identity.dto.request;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.validation.constraints.Email;
+
 import com.devteria.identity.validator.DobConstraint;
 
-import jakarta.validation.constraints.Email;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

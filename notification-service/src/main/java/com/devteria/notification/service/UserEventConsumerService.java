@@ -29,12 +29,16 @@ public class UserEventConsumerService {
     public void handleUserCreationEvent(@Payload UserEvent event) {
         log.info("Received user creation event from Kafka: {}", event);
 
-        if (event == null || !StringUtils.hasText(event.getEmail())) {
-            log.warn("Received event is null or email is missing. Skipping email sending.");
+        if (event == null
+                || !StringUtils.hasText(event.getEmail())
+                || !StringUtils.hasText(event.getTypeEvent())) {
+
+            log.warn("Received event is null or email/typeEvent is missing. Skipping email sending.");
             return;
         }
 
-        if (!event.getTypeEvent().equals(TypeEvent.CREATE.getEvent())){
+        if (!TypeEvent.CREATE.getEvent().equals(event.getTypeEvent())){
+            log.warn("Received event type {} on create topic. Skipping.", event.getTypeEvent());
             return;
         }
 
@@ -60,12 +64,17 @@ public class UserEventConsumerService {
     @KafkaListener(topics = "user-updated-topic", groupId = "notification-group")
     public void handleUserUpdateEvent(@Payload UserEvent event) {
         log.info("Received user update event from Kafka: {}", event);
-        if (event == null || !StringUtils.hasText(event.getEmail())) {
-            log.warn("Received update event is null or email is missing. Skipping email sending.");
+
+        if (event == null
+                || !StringUtils.hasText(event.getEmail())
+                || !StringUtils.hasText(event.getTypeEvent())) {
+
+            log.warn("Received update event is null or email/typeEvent is missing. Skipping email sending.");
             return;
         }
 
-        if (!event.getTypeEvent().equals(TypeEvent.UPDATE.getEvent())){
+        if (!TypeEvent.UPDATE.getEvent().equals(event.getTypeEvent())){
+            log.warn("Received event type {} on update topic. Skipping.", event.getTypeEvent());
             return;
         }
 
@@ -89,12 +98,17 @@ public class UserEventConsumerService {
     @KafkaListener(topics = "user-deleted-topic", groupId = "notification-group")
     public void handleUserDeleteEvent(@Payload UserEvent event) {
         log.info("Received user delete event from Kafka: {}", event);
-        if (event == null || !StringUtils.hasText(event.getEmail())) {
-            log.warn("Received delete event is null or email is missing. Skipping email sending.");
+
+        if (event == null
+                || !StringUtils.hasText(event.getEmail())
+                || !StringUtils.hasText(event.getTypeEvent())) {
+
+            log.warn("Received delete event is null or email/typeEvent is missing. Skipping email sending.");
             return;
         }
 
-        if (!event.getTypeEvent().equals(TypeEvent.DELETE.getEvent())){
+        if (!TypeEvent.DELETE.getEvent().equals(event.getTypeEvent())){
+            log.warn("Received event type {} on delete topic. Skipping.", event.getTypeEvent());
             return;
         }
 
@@ -114,5 +128,4 @@ public class UserEventConsumerService {
             log.error("Error processing user delete event for user ID {}: {}", event.getUserId(), e.getMessage(), e);
         }
     }
-
 }

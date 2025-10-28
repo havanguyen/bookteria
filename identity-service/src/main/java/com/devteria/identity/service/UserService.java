@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.devteria.identity.constant.TypeEvent;
-import com.devteria.identity.dto.event.UserEvent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.devteria.identity.constant.PredefinedRole;
+import com.devteria.identity.constant.TypeEvent;
+import com.devteria.identity.dto.event.UserEvent;
 import com.devteria.identity.dto.request.ProfileCreationRequest;
 import com.devteria.identity.dto.request.ProfileUpdateRequest;
 import com.devteria.identity.dto.request.UserCreationRequest;
@@ -92,7 +92,9 @@ public class UserService {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
 
-        User user = userRepository.findByUsernameAndIsActiveTrue(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository
+                .findByUsernameAndIsActiveTrue(name)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         UserProfileResponse profileResponse = null;
         try {
@@ -171,8 +173,7 @@ public class UserService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         UserProfileResponse profileResponse = null;
         try {

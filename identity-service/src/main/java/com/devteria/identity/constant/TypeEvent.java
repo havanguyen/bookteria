@@ -1,11 +1,10 @@
 package com.devteria.identity.constant;
 
-
 import lombok.Getter;
 
 @Getter
 public enum TypeEvent {
-    CREATE("Create") ,
+    CREATE("Create"),
     UPDATE("Update"),
     DELETE("Delete"),
     ;
@@ -15,5 +14,4 @@ public enum TypeEvent {
     }
 
     private final String event;
-
 }

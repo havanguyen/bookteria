@@ -1,8 +1,9 @@
 package com.devteria.identity.service;
 
-import com.devteria.identity.dto.event.UserEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+
+import com.devteria.identity.dto.event.UserEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,11 @@ public class UserEventProducerService {
             kafkaTemplate.send(TOPIC_NAME, event.getUserId(), event);
             log.info("Successfully sent event for user ID: {}", event.getUserId());
         } catch (Exception e) {
-            log.error("Error sending user creation event to Kafka for user ID {}: {}", event.getUserId(), e.getMessage(), e);
+            log.error(
+                    "Error sending user creation event to Kafka for user ID {}: {}",
+                    event.getUserId(),
+                    e.getMessage(),
+                    e);
         }
     }
 
