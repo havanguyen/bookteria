@@ -14,9 +14,11 @@ import com.devteria.identity.entity.User;
 public interface UserMapper {
     User toUser(UserCreationRequest request);
 
+    @Mapping(source = "active", target = "active")
     UserResponse toUserResponse(User user);
 
     @Mapping(target = "roles", ignore = true)
+    @Mapping(target = "active", ignore = true)
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
 
     ProfileCreationRequest toProfileCreationRequest(UserCreationRequest request);

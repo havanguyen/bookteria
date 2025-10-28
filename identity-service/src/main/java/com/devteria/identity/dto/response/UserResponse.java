@@ -15,5 +15,5 @@ public class UserResponse {
     String username;
     UserProfileResponse profileResponse;
     Set<RoleResponse> roles;
-    boolean isActive;
+    boolean active;
 }

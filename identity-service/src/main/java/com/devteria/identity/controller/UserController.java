@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.devteria.identity.dto.request.ApiResponse;
@@ -50,6 +51,14 @@ public class UserController {
     ApiResponse<UserResponse> getMyInfo() {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getMyInfo())
+                .build();
+    }
+
+    @PutMapping("/my-info")
+    @PreAuthorize("isAuthenticated()") // Đảm bảo người dùng đã đăng nhập
+    ApiResponse<UserResponse> updateMyInfo(@RequestBody @Valid UserUpdateRequest request) {
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.updateMyInfo(request))
                 .build();
     }
 

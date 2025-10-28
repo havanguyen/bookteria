@@ -157,12 +157,72 @@ public class UserService {
                         .email(profileResponse.getEmail())
                         .typeEvent(TypeEvent.UPDATE.getEvent())
                         .build();
-                userEventProducerService.sendUserCreationEvent(event);
+                userEventProducerService.sendUserUpdateEvent(event);
             } catch (Exception e) {
                 log.error("Failed to send user creation event for user ID {}: {}", user.getId(), e.getMessage(), e);
             }
         } else {
             log.warn("Profile response or email is null for user ID {}. Skipping Kafka event.", user.getId());
+        }
+
+        UserResponse userResponse = userMapper.toUserResponse(user);
+        userResponse.setProfileResponse(profileResponse);
+
+        return userResponse;
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public UserResponse updateMyInfo(UserUpdateRequest request) {
+        var context = SecurityContextHolder.getContext();
+        String username = context.getAuthentication().getName();
+
+        User user = userRepository
+                .findByUsernameAndIsActiveTrue(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        userMapper.updateUser(user, request);
+
+        if (StringUtils.hasText(request.getPassword())) {
+            try {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            } catch (IllegalArgumentException e) {
+                log.error("Password encoding failed for user {}: {}", user.getId(), e.getMessage());
+                throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+            }
+        }
+
+        user = userRepository.save(user);
+
+        UserProfileResponse profileResponse = null;
+        try {
+            ProfileUpdateRequest profileUpdateRequest = ProfileUpdateRequest.builder()
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
+                    .dob(request.getDob())
+                    .city(request.getCity())
+                    .email(request.getEmail())
+                    .build();
+            profileResponse = profileClient.updateProfileByUserId(user.getId(), profileUpdateRequest);
+            log.info("Profile update called by user {} for userId: {}", username, user.getId());
+        } catch (Exception e) {
+            log.error("Failed to update profile for user {}: {}", user.getId(), e.getMessage());
+        }
+
+        if (profileResponse != null && StringUtils.hasText(profileResponse.getEmail())) {
+            try {
+                UserEvent event = UserEvent.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .firstName(profileResponse.getFirstName())
+                        .email(profileResponse.getEmail())
+                        .typeEvent(TypeEvent.UPDATE.getEvent())
+                        .build();
+                userEventProducerService.sendUserUpdateEvent(event);
+            } catch (Exception e) {
+                log.error("Failed to send user update event for user ID {}: {}", user.getId(), e.getMessage(), e);
+            }
+        } else {
+            log.warn("Profile response or email is null after update for user ID {}. Skipping Kafka event.", user.getId());
         }
 
         UserResponse userResponse = userMapper.toUserResponse(user);
