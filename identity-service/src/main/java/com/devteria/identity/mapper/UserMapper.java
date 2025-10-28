@@ -19,6 +19,7 @@ public interface UserMapper {
 
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "password", ignore = true)
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
 
     ProfileCreationRequest toProfileCreationRequest(UserCreationRequest request);
