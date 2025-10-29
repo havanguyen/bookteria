@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base(headerTitle='Account Deactivated')}"> <head>
+    <title>Account Deactivation Notice</title>
+</head>
+<body>
+
+<th:block layout:fragment="content">
+
+    <style>
+        .button { background-color: #d9534f; }
+    </style>
+
+    <h2>Account Deactivated</h2>
+
+    <p th:text="'Dear ' + ${username} + ','">Dear User,</p>
+
+    <p>Your <strong>Bookteria</strong> account has been deactivated as per your request or administrative decision.</p>
+
+    <p>If this was not intended, please contact our support team immediately to restore your access.</p>
+
+    <p style="text-align: center; margin-top: 30px;">
+        <a href="mailto:nguyenjavax@gmail.com" class="button">Contact Support</a>
+    </p>
+
+</th:block>
+
+</body>
+</html>

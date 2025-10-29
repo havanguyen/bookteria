@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}"> <head>
+    <title th:text="'Welcome to Bookteria, ' + ${username} + '!'"></title>
+</head>
+<body>
+
+<th:block layout:fragment="content">
+
+    <h2 th:text="'Welcome, ' + ${username} + '!'">Welcome, Guest!</h2>
+
+    <p>Thank you for joining <strong>Bookteria</strong> — your new home for discovering, sharing, and managing your favorite books.</p>
+
+    <p>We're excited to have you on board. Start exploring now!</p>
+
+    <p style="text-align: center; margin-top: 30px;">
+        <a href="https://bookteria.dev/login" class="button">Go to Bookteria</a>
+    </p>
+
+</th:block>
+
+</body>
+</html>
