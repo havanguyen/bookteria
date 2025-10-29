@@ -1,2 +1,2 @@
 target/
-notification-service/src/main/resources/
+notification-service/src/main/resources/application.yaml
