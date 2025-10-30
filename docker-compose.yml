@@ -16,3 +16,29 @@ services:
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411" # Cổng để xem UI và nhận data
+
+    # 2. PROMETHEUS (Server để thu thập Metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+        - "9090:9090" # Cổng để xem UI Prometheus
+    volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+        - "host.docker.internal:host-gateway"
+
+    # 3. GRAFANA (Server để vẽ biểu đồ)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+        - "3000:3000"
+    depends_on:
+        - prometheus
