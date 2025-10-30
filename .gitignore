@@ -1,2 +1,2 @@
 target/
-config-server/src/main/resources/application.yaml
+config-server/src/main/resources/
