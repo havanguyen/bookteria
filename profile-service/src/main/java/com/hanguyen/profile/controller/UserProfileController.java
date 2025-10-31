@@ -14,6 +14,7 @@ import com.hanguyen.profile.service.UserProfileRService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +37,15 @@ public class UserProfileController {
                     .build();
         }
     }
+
+    @PostMapping("/users/avatar")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<UserProfileResponse> updateMyAvatar(@RequestParam("file") MultipartFile file ) {
+        return ApiResponse.<UserProfileResponse>builder()
+                .result(userProfileRService.updateAvatar(file))
+                .build();
+    }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/users")

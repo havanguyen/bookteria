@@ -26,6 +26,8 @@ public class UserProfile {
     @Property("user_id")
     String userId;
 
+    String avatarUrl;
+
     String firstName;
     String lastName;
     LocalDate dob;

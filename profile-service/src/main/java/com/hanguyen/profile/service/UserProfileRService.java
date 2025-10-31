@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.hanguyen.profile.dto.response.UploadResponse;
+import com.hanguyen.profile.repository.httpClient.FileClient;
+import com.hanguyen.profile.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UserProfileRService {
     UserProfileRepository userProfileRepository;
     UserProfileMapper userProfileMapper;
+    FileClient fileClient;
 
     @Transactional("transactionManager")
     public UserProfileResponse createProfile(ProfileCreationRequest profileCreationRequest) {
@@ -72,6 +77,24 @@ public class UserProfileRService {
         log.info("Updated/Created profile with ID: {} for User ID: {}", savedProfile.getId(), savedProfile.getUserId());
         return userProfileMapper.toUserProfileResponse(savedProfile);
     }
+
+    @Transactional("transactionManager")
+    public UserProfileResponse updateAvatar(MultipartFile file) {
+
+        String userId = SecurityUtils.getUserId();
+
+        UploadResponse uploadResponse = fileClient.uploadImage(file);
+        String avatarUrl = uploadResponse.getUrl();
+
+        UserProfile userProfile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+
+        userProfile.setAvatarUrl(avatarUrl);
+        userProfile = userProfileRepository.save(userProfile);
+
+        return userProfileMapper.toUserProfileResponse(userProfile);
+    }
+
 
     public void deleteProfile(UUID id) {
         userProfileRepository.deleteById(id);

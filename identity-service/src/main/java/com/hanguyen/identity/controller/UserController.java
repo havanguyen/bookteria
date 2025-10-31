@@ -55,7 +55,7 @@ public class UserController {
     }
 
     @PutMapping("/my-info")
-    @PreAuthorize("isAuthenticated()") // Đảm bảo người dùng đã đăng nhập
+    @PreAuthorize("isAuthenticated()")
     ApiResponse<UserResponse> updateMyInfo(@RequestBody @Valid UserUpdateRequest request) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.updateMyInfo(request))
