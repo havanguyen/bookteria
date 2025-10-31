@@ -6,11 +6,9 @@ services:
     ports:
       - '9094:9094'
     environment:
-      # KRaft settings
       - KAFKA_CFG_NODE_ID=0
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
-      # Listeners
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
@@ -21,24 +19,51 @@ services:
     image: openzipkin/zipkin:latest
     container_name: zipkin
     ports:
-      - "9411:9411" # Cổng để xem UI và nhận data
+      - "9411:9411"
 
-    # 2. PROMETHEUS (Server để thu thập Metrics)
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     ports:
-        - "9090:9090" # Cổng để xem UI Prometheus
+      - "9090:9090"
     volumes:
-        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     extra_hosts:
-        - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
-    # 3. GRAFANA (Server để vẽ biểu đồ)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-        - "3000:3000"
+      - "3000:3000"
     depends_on:
-        - prometheus
+      - prometheus
+
+  postgresql_bookteria:
+    image: postgres:15
+    container_name: postgresql_bookteria
+    environment:
+      POSTGRES_USER: bookteria_user
+      POSTGRES_PASSWORD: bookteria_password
+      POSTGRES_DB: bookteria_product_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  elasticsearch_bookteria:
+    image: elasticsearch:8.11.1
+    container_name: elasticsearch_bookteria
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+
+volumes:
+  postgres_data:
+  elastic_data:
