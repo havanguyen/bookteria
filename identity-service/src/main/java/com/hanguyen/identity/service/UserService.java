@@ -141,6 +141,7 @@ public class UserService {
                     .dob(request.getDob())
                     .city(request.getCity())
                     .email(request.getEmail())
+                    .avatarUrl(request.getAvatarUrl())
                     .build();
             profileResponse = profileClient.updateProfileByUserId(userId, profileUpdateRequest);
             log.info("Profile update called for userId: {}", userId);
@@ -201,6 +202,7 @@ public class UserService {
                     .dob(request.getDob())
                     .city(request.getCity())
                     .email(request.getEmail())
+                    .avatarUrl(request.getAvatarUrl())
                     .build();
             profileResponse = profileClient.updateProfileByUserId(user.getId(), profileUpdateRequest);
             log.info("Profile update called by user {} for userId: {}", username, user.getId());

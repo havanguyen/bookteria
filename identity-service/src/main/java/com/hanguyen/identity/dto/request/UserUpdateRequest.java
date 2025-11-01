@@ -30,4 +30,6 @@ public class UserUpdateRequest {
     String city;
 
     Boolean isActive;
+
+    String avatarUrl;
 }

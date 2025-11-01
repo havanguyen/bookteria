@@ -21,4 +21,5 @@ public class ProfileUpdateRequest {
 
     String email;
     String city;
+    String avatarUrl;
 }
