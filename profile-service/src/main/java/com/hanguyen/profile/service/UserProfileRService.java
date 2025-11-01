@@ -66,6 +66,7 @@ public class UserProfileRService {
                     .lastName(request.getLastName())
                     .dob(request.getDob())
                     .city(request.getCity())
+                    .avatarUrl(request.getAvatarUrl())
                     .build();
             return userProfileMapper.toUserProfile(creationRequest);
         });
