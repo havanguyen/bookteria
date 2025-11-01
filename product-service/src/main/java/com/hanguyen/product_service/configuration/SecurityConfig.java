@@ -20,10 +20,14 @@ public class SecurityConfig {
         this.customJwtDecoder = customJwtDecoder;
     }
 
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/products", "/products/**", "/categories", "/categories/**", "/authors", "/authors/**", "/publishers", "/publishers/**"
+    };
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(request -> request
-                .requestMatchers(HttpMethod.GET, "/products", "/products/**", "/categories", "/categories/**", "/authors", "/authors/**", "/publishers", "/publishers/**").permitAll()
+                .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer

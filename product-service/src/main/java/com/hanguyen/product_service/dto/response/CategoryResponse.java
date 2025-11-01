@@ -1,6 +1,11 @@
-package com.hanguyen.product_service.entity;
+package com.hanguyen.product_service.dto.response;
 
-import jakarta.persistence.*;
+
+import com.hanguyen.product_service.entity.Category;
+import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,30 +13,16 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 
-@Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Category {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+public class CategoryResponse {
     String id;
-
     String name;
-
-    @Column(unique = true)
     String slug;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_category_id")
     Category parentCategory;
-
-    @CreationTimestamp
     OffsetDateTime createdAt;
-
-    @UpdateTimestamp
     OffsetDateTime updatedAt;
 }

@@ -1,5 +1,6 @@
 package com.hanguyen.product_service.dto.request;
 
+
 import jakarta.validation.constraints.NotEmpty;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,9 +10,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AuthorRequest {
+public class PublisherRequest {
     @NotEmpty
     String name;
-    String bio;
-    String avatarUrl;
 }

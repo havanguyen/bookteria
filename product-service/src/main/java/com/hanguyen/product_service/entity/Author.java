@@ -6,6 +6,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Getter
@@ -22,4 +26,10 @@ public class Author {
     String name;
     String bio;
     String avatarUrl;
+
+    @CreationTimestamp
+    OffsetDateTime createdAt;
+
+    @UpdateTimestamp
+    OffsetDateTime updatedAt;
 }
