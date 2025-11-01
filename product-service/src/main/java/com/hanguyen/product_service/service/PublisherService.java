@@ -1,7 +1,6 @@
 package com.hanguyen.product_service.service;
 
 import com.hanguyen.product_service.dto.request.PublisherRequest;
-import com.hanguyen.product_service.dto.response.AuthorResponse;
 import com.hanguyen.product_service.dto.response.PublisherResponse;
 import com.hanguyen.product_service.entity.Publisher;
 import com.hanguyen.product_service.exception.AppException;
@@ -15,9 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

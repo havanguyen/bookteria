@@ -1,6 +1,5 @@
 package com.hanguyen.product_service.service;
 
-import com.hanguyen.product_service.dto.event.ProductEvent;
 import com.hanguyen.product_service.dto.request.ProductRequest;
 import com.hanguyen.product_service.dto.response.ProductResponse;
 import com.hanguyen.product_service.entity.Author;
@@ -17,12 +16,9 @@ import com.hanguyen.product_service.repository.PublisherRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,12 +37,7 @@ public class ProductService {
     PublisherRepository publisherRepository;
     ProductMapper productMapper;
 
-    @NonFinal
-    @Value("${app.kafka.topic}")
-    String topicName;
-
-    @NonFinal
-    KafkaTemplate<String , ProductEvent> kafkaTemplate;
+    ProductEventProducerService productEventProducerService;
 
     @Transactional
     public ProductResponse createProduct(ProductRequest productRequest){
@@ -68,7 +59,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        sendProductEvent(savedProduct);
+        productEventProducerService.sendProductEvent(savedProduct);
 
         return productMapper.toProductResponse(savedProduct);
     }
@@ -110,7 +101,7 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
 
-        sendProductEvent(savedProduct);
+        productEventProducerService.sendProductEvent(savedProduct);
 
         return productMapper.toProductResponse(savedProduct);
     }
@@ -130,15 +121,5 @@ public class ProductService {
         productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ID_PRODUCT_NOT_FOUND));
         productRepository.deleteById(id);
-    }
-
-    private void sendProductEvent(Product product) {
-        ProductEvent event = productMapper.toProductEvent(product);
-        try {
-            kafkaTemplate.send(topicName, event.getId(), event);
-            log.info("Sent product event to Kafka: {}", event.getId());
-        } catch (Exception e) {
-            log.error("Failed to send product event to Kafka for ID {}: {}", event.getId(), e.getMessage(), e);
-        }
     }
 }
