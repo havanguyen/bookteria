@@ -2,8 +2,6 @@ FROM amazoncorretto:21-alpine-jdk AS build
 
 WORKDIR /app
 
-COPY .mvn/ .mvn
-
 COPY mvnw pom.xml ./
 
 RUN ./mvnw dependency:go-offline

@@ -6,6 +6,9 @@ COPY .mvn/ .mvn
 
 COPY mvnw pom.xml ./
 
+# THÊM DÒNG NÀY ĐỂ CẤP QUYỀN THỰC THI
+RUN chmod +x ./mvnw
+
 RUN ./mvnw dependency:go-offline
 
 
