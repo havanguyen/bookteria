@@ -15,6 +15,120 @@ services:
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
 
+
+  discovery-server:
+    image: ${DOCKER_USERNAME}/discovery-server:latest
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - bookteria-net
+
+  api-gateway:
+      image: ${DOCKER_USERNAME}/api-gateway:latest
+      container_name: api-gateway
+      depends_on: [discovery-server]
+      ports:
+        - "9000:9000"
+      networks:
+        - bookteria-net
+
+  identity-service:
+      image: ${DOCKER_USERNAME}/identity-service:latest
+      container_name: identity-service
+      depends_on: [discovery-server]
+      ports:
+        - "8080:8080"
+      networks:
+        - bookteria-net
+
+  profile-service:
+      image: ${DOCKER_USERNAME}/profile-service:latest
+      container_name: profile-service
+      depends_on: [discovery-server]
+      ports:
+        - "8081:8080"
+      networks:
+        - bookteria-net
+
+  product-service:
+      image: ${DOCKER_USERNAME}/product-service:latest
+      container_name: product-service
+      depends_on: [discovery-server]
+      ports:
+        - "8082:8080"
+      networks:
+        - bookteria-net
+
+  search-service:
+      image: ${DOCKER_USERNAME}/search-service:latest
+      container_name: search-service
+      depends_on: [discovery-server]
+      ports:
+        - "8083:8080"
+      networks:
+        - bookteria-net
+
+  inventory-service:
+      image: ${DOCKER_USERNAME}/inventory-service:latest
+      container_name: inventory-service
+      depends_on: [discovery-server]
+      ports:
+        - "8084:8080"
+      networks:
+        - bookteria-net
+
+  cart-service:
+      image: ${DOCKER_USERNAME}/cart-service:latest
+      container_name: cart-service
+      depends_on: [discovery-server]
+      ports:
+        - "8085:8080"
+      networks:
+        - bookteria-net
+
+  order-service:
+      image: ${DOCKER_USERNAME}/order-service:latest
+      container_name: order-service
+      depends_on: [discovery-server]
+      ports:
+        - "8086:8080"
+      networks:
+        - bookteria-net
+
+  payment-service:
+      image: ${DOCKER_USERNAME}/payment-service:latest
+      container_name: payment-service
+      depends_on: [discovery-server]
+      ports:
+        - "8087:8080"
+      networks:
+        - bookteria-net
+
+  notification-service:
+      image: ${DOCKER_USERNAME}/notification-service:latest
+      container_name: notification-service
+      depends_on: [discovery-server]
+      ports:
+        - "8088:8080"
+      networks:
+        - bookteria-net
+
+  file-service:
+      image: ${DOCKER_USERNAME}/file-service:latest
+      container_name: file-service
+      depends_on: [discovery-server]
+      ports:
+        - "8089:8080"
+      networks:
+        - bookteria-net
+
+volumes: {}
+
+networks:
+  bookteria-net:
+    driver: bridge
+
 #  zipkin:
 #    image: openzipkin/zipkin:latest
 #    container_name: zipkin
