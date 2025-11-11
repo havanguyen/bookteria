@@ -11,7 +11,7 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests
 
-FROM amazoncorretto:8u472-alpine3.21-jre
+FROM amazoncorretto:21-alpine-jdk
 
 WORKDIR /app
 
