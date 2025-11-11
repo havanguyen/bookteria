@@ -1,4 +1,5 @@
-FROM amazoncorretto:21-alpine-jdk AS build
+FROM maven:3.9-amazoncorretto-21-alpine as build
+
 
 WORKDIR /app
 
