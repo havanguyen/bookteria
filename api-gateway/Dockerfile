@@ -13,7 +13,7 @@ COPY src ./src
 
 RUN ./mvnw clean package -DskipTests
 
-FROM amazoncorretto:21-alpine-jre
+FROM amazoncorretto:8u472-alpine3.21-jre
 
 WORKDIR /app
 
