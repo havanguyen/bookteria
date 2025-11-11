@@ -1,0 +1,157 @@
+services:
+  kafka:
+    image: bitnamilegacy/kafka:3.7.0
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+#  zipkin:
+#    image: openzipkin/zipkin:latest
+#    container_name: zipkin
+#    ports:
+#      - "9411:9411"
+#
+#  prometheus:
+#    image: prom/prometheus:latest
+#    container_name: prometheus
+#    ports:
+#      - "9090:9090"
+#    volumes:
+#      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+#
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - prometheus
+
+#  postgresql_product:
+#    image: postgres:15
+#    container_name: postgresql_product
+#    environment:
+#      POSTGRES_USER: bookteria_user
+#      POSTGRES_PASSWORD: bookteria_password
+#      POSTGRES_DB: bookteria_product_db
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - product_data:/var/lib/postgresql/data
+#
+#  postgresql_order:
+#    image: postgres:15
+#    container_name: postgresql_order
+#    environment:
+#      POSTGRES_USER: bookteria_user
+#      POSTGRES_PASSWORD: bookteria_password
+#      POSTGRES_DB: bookteria_order_db
+#    ports:
+#      - "5433:5432"
+#    volumes:
+#      - order_data:/var/lib/postgresql/data
+
+#  postgresql_payment:
+#    image: postgres:15
+#    container_name: postgresql_payment
+#    environment:
+#      POSTGRES_USER: bookteria_user
+#      POSTGRES_PASSWORD: bookteria_password
+#      POSTGRES_DB: bookteria_payment_db
+#    ports:
+#      - "5434:5432"
+#    volumes:
+#      - payment_data:/var/lib/postgresql/data
+#
+#  elasticsearch_bookteria:
+#    image: elasticsearch:8.11.1
+#    container_name: elasticsearch_bookteria
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false
+#      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#    ports:
+#      - "9200:9200"
+#      - "9300:9300"
+#    volumes:
+#      - elastic_data:/usr/share/elasticsearch/data
+#
+#
+#  mysql_bookteria:
+#    image: mysql:8.0.43-debian
+#    container_name: mysql_bookteria
+#    environment:
+#      MYSQL_ROOT_PASSWORD: root
+#      MYSQL_DATABASE: bookteria_identity_db
+#      MYSQL_USER: bookteria_user
+#      MYSQL_PASSWORD: bookteria_password
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#
+#  neo4j_bookteria:
+#      image: neo4j:latest
+#      container_name: neo4j_bookteria
+#      environment:
+#        NEO4J_AUTH: neo4j/nguyen902993 # docker logs neo4j_bookteria -> fix
+#      ports:
+#        - "7474:7474"
+#        - "7687:7687"
+#      volumes:
+#        - neo4j_data:/data
+#
+#  mongodb_bookteria:
+#      image: bitnami/mongodb:latest
+#      container_name: mongodb_bookteria
+#      environment:
+#        MONGODB_ROOT_USER: root
+#        MONGODB_ROOT_PASSWORD: root
+#      ports:
+#        - "27017:27017"
+#      volumes:
+#        - mongodb_data:/bitnami/mongodb
+#
+#  redis_bookteria:
+#    image: redis:8.2.2
+#    container_name: redis_bookteria
+#    ports:
+#      - "6379:6379"
+#    volumes:
+#      - redis_data:/data
+#    command: redis-server --appendonly yes
+#
+#  rabbitmq_bookteria:
+#    image: rabbitmq:4.1.5-management-alpine
+#    container_name: rabbitmq_bookteria
+#    ports:
+#      - "5672:5672"
+#      - "15672:15672"
+#    environment:
+#      - RABBITMQ_DEFAULT_USER=rabbitmq_user
+#      - RABBITMQ_DEFAULT_PASS=rabbitmq_password
+#    volumes:
+#      - rabbitmq_data:/var/lib/rabbitmq
+#
+#volumes:
+#  product_data:
+#  elastic_data:
+#  mysql_data:
+#  neo4j_data:
+#  mongodb_data:
+#  redis_data:
+#  rabbitmq_data:
+#  order_data:
+#  payment_data:

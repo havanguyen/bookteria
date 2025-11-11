@@ -1,0 +1,86 @@
+app:
+  internal-token: ${APP_INTERNAL_TOKEN}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
+
+spring.rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  username: ${RABBITMQ_USERNAME}
+  password: ${RABBITMQ_PASSWORD}
+  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+
+  exchanges:
+    order: order.exchange
+    cart: cart.exchange
+    inventory: inventory.exchange
+    payment: payment.exchange
+
+  queues:
+    inventory-reserve: inventory.reserve.queue
+    inventory-rollback: inventory.rollback.queue
+    inventory-sync: inventory.sync.db.queue
+    cart-sync: cart.sync.db.queue
+    order: order.queue
+    order-reply: order.reply.queue
+    payment-initiate: payment.initiate.queue
+    payment-failed: payment.failed.queue
+
+  routing-keys:
+    inventory-reserve: inventory.reserve.key
+    inventory-rollback: inventory.rollback.key
+    inventory-sync: inventory.update.key
+    cart-sync: cart.update.key
+    order: order.key
+    order-reply: order.reply.key
+    payment-initiate: payment.initiate.key
+    payment-failed: payment.failed.key
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %c - %m%n"
+
+  level:
+    org.springframework.amqp: DEBUG
+    com.hanguyen.cart_service.service.CartService: DEBUG
+
+server:
+  port: 8088
+
+spring:
+  application:
+    name: order-service
+
+  datasource:
+    url: ${ORDER_SERVICE_DB_URL}
+    username: ${ORDER_SERVICE_DB_USER}
+    password: ${ORDER_SERVICE_DB_PASS}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: order-group
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.type.mapping: com.hanguyen.identity.dto.event.UserEvent:com.hanguyen.notification.dto.event.UserEvent
+
+  json:
+    trusted:
+      packages: "*"

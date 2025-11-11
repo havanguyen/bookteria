@@ -1,0 +1,168 @@
+app:
+  internal-token: ${APP_INTERNAL_TOKEN}
+  api-prefix: /api/v1
+  service:
+    identity: ${API_GATEWAY_IDENTITY_SERVICE_URL}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
+
+spring.rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  username: ${RABBITMQ_USERNAME}
+  password: ${RABBITMQ_PASSWORD}
+  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+
+  exchanges:
+    order: order.exchange
+    cart: cart.exchange
+    inventory: inventory.exchange
+    payment: payment.exchange
+
+  queues:
+    inventory-reserve: inventory.reserve.queue
+    inventory-rollback: inventory.rollback.queue
+    inventory-sync: inventory.sync.db.queue
+    cart-sync: cart.sync.db.queue
+    order: order.queue
+    order-reply: order.reply.queue
+    payment-initiate: payment.initiate.queue
+    payment-failed: payment.failed.queue
+
+  routing-keys:
+    inventory-reserve: inventory.reserve.key
+    inventory-rollback: inventory.rollback.key
+    inventory-sync: inventory.update.key
+    cart-sync: cart.update.key
+    order: order.key
+    order-reply: order.reply.key
+    payment-initiate: payment.initiate.key
+    payment-failed: payment.failed.key
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %c - %m%n"
+
+  level:
+    org.springframework.amqp: DEBUG
+    com.hanguyen.cart_service.service.CartService: DEBUG
+
+server:
+  port: 9000
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: identity_service
+          uri: lb://identity-service
+          predicates:
+            - Path=${app.api-prefix}/identity/**
+          filters:
+            - StripPrefix=2
+        - id: profile_service
+          uri: lb://profile-service
+          predicates:
+            - Path=${app.api-prefix}/profile/users/**
+          filters:
+            - StripPrefix=2
+        - id: notification_service
+          uri: lb://notification-service
+          predicates:
+            - Path=${app.api-prefix}/notification/**
+          filters:
+            - StripPrefix=2
+
+        - id: file_service
+          uri: lb://file-service
+          predicates:
+            - Path=${app.api-prefix}/file/**
+          filters:
+            - StripPrefix=2
+
+        - id: product-service-products
+          uri: lb://product-service
+          predicates:
+            - Path=/api/v1/products/**
+          filters:
+            - StripPrefix=2
+
+        - id: product-service-authors
+          uri: lb://product-service
+          predicates:
+            - Path=/api/v1/authors/**
+          filters:
+            - StripPrefix=2
+
+        - id: product-service-categories
+          uri: lb://product-service
+          predicates:
+            - Path=/api/v1/categories/**
+          filters:
+            - StripPrefix=2
+
+        - id: product-service-publishers
+          uri: lb://product-service
+          predicates:
+            - Path=/api/v1/publishers/**
+          filters:
+            - StripPrefix=2
+
+        - id: search-service
+          uri: lb://search-service
+          predicates:
+            - Path=/api/v1/search/**
+          filters:
+            - StripPrefix=2
+
+        - id: inventory-service
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/v1/inventory/**
+          filters:
+            - StripPrefix=2
+
+        - id: cart-service
+          uri: lb://cart-service
+          predicates:
+            - Path=/api/v1/my-cart/**
+          filters:
+            - StripPrefix=2
+
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - StripPrefix=2
+
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/v1/payment/**
+          filters:
+            - StripPrefix=2
+
+
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health, info, prometheus
+#
+#  tracing:
+#    sampling:
+#      probability: 1.0
+#
+#  zipkin:
+#    tracing:
+#      endpoint: "http://localhost:9411/api/v2/spans"

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <title>Your Account Has Been Updated</title>
+</head>
+<body>
+
+<th:block layout:fragment="content">
+
+    <h2>Account Update Notice</h2>
+
+    <p th:text="'Hello ' + ${username} + ','">Hello User,</p>
+
+    <p>We wanted to let you know that your <strong>Bookteria</strong> account information has been successfully updated.</p>
+
+    <p>If this wasn’t you, please contact our support team immediately.</p>
+
+    <p>Thank you for staying with us!</p>
+
+</th:block>
+
+</body>
+</html>

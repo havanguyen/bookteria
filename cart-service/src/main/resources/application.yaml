@@ -1,0 +1,62 @@
+app:
+  internal-token: ${APP_INTERNAL_TOKEN}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE}
+
+spring.rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  username: ${RABBITMQ_USERNAME}
+  password: ${RABBITMQ_PASSWORD}
+  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+
+  exchanges:
+    order: order.exchange
+    cart: cart.exchange
+    inventory: inventory.exchange
+    payment: payment.exchange
+
+  queues:
+    inventory-reserve: inventory.reserve.queue
+    inventory-rollback: inventory.rollback.queue
+    inventory-sync: inventory.sync.db.queue
+    cart-sync: cart.sync.db.queue
+    order: order.queue
+    order-reply: order.reply.queue
+    payment-initiate: payment.initiate.queue
+    payment-failed: payment.failed.queue
+
+  routing-keys:
+    inventory-reserve: inventory.reserve.key
+    inventory-rollback: inventory.rollback.key
+    inventory-sync: inventory.update.key
+    cart-sync: cart.update.key
+    order: order.key
+    order-reply: order.reply.key
+    payment-initiate: payment.initiate.key
+    payment-failed: payment.failed.key
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] %c - %m%n"
+
+  level:
+    org.springframework.amqp: DEBUG
+    com.hanguyen.cart_service.service.CartService: DEBUG
+
+server:
+  port: 8087
+
+spring:
+  application:
+    name: cart-service
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+    mongodb:
+      uri: mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER_HOST}/cart_db?appName=${MONGODB_APP_NAME}

@@ -1,0 +1,3 @@
+target/
+config-server/src/main/resources/
+.env
