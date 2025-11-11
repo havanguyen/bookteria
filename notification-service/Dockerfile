@@ -4,12 +4,12 @@ WORKDIR /app
 
 COPY mvnw pom.xml ./
 
-RUN ./mvnw dependency:go-offline
+RUN mvn dependency:go-offline
 
 
 COPY src ./src
 
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 FROM amazoncorretto:8u472-alpine3.21-jre
 
