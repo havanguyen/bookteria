@@ -36,6 +36,8 @@ public class InventoryService {
     StringRedisTemplate stringRedisTemplate;
     RedisScript<Long> decreaseStockScript;
 
+    RedisScript<Long> increaseStockScript;
+
     InventoryRepository inventoryRepository;
     RabbitTemplate rabbitTemplate;
 
@@ -112,6 +114,33 @@ public class InventoryService {
 
         long result = stringRedisTemplate.execute(
                 decreaseStockScript,
+                Collections.singletonList(KEY_PREFIX + bookId),
+                String.valueOf(quantity)
+        );
+        if( result == 1){
+            String stock = stringRedisTemplate.opsForValue().get(KEY_PREFIX + bookId);
+            int stockInt = 0 ;
+            if(stock != null){
+                try {
+                    stockInt = Integer.parseInt(stock);
+                }
+                catch (Exception e){
+                    log.info("Error when parse {} to Integer" , stock);
+                }
+            }
+            sendSyncEvent(bookId , stockInt);
+        }
+        return result == 1;
+    }
+
+    @Transactional
+    public boolean increaseStock(String bookId, int quantity) {
+        if (quantity <= 0) {
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+
+        long result = stringRedisTemplate.execute(
+                increaseStockScript,
                 Collections.singletonList(KEY_PREFIX + bookId),
                 String.valueOf(quantity)
         );

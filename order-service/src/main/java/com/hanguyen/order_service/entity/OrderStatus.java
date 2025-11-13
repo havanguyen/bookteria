@@ -9,7 +9,8 @@ public enum OrderStatus {
     PAID("Order has been successfully paid"),
     SHIPPED("Order has been shipped to the customer"),
     COMPLETED("Order has been delivered and completed"),
-    CANCELLED("Order has been cancelled");
+    CANCELLED("Order has been cancelled"),
+    FAILED("Order failed");
 
     private final String message;
 

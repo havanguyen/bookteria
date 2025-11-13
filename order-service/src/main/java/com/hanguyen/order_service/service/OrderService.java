@@ -98,42 +98,21 @@ public class OrderService {
 
             sagaProducerService.sendReserveInventoryCommand(reserveInventoryCommand);
             log.info("Send command reverse inventory for order id {}" , orders.getId());
-
-
-            HttpServletRequest request = Optional.ofNullable(RequestContextHolder.getRequestAttributes())
-                    .filter(ServletRequestAttributes.class::isInstance)
-                    .map(ServletRequestAttributes.class::cast)
-                    .map(ServletRequestAttributes::getRequest)
-                    .orElse(null);
-
-            String ipAddress = null;
-            if (request != null) {
-                ipAddress = request.getHeader("X-Forwarded-For");
-
-                if (ipAddress != null && !ipAddress.isEmpty() && !"unknown".equalsIgnoreCase(ipAddress)) {
-                    ipAddress = ipAddress.split(",")[0].trim();
-                } else {
-                    ipAddress = request.getRemoteAddr();
-                }
-            }
-
-            if (ipAddress == null ||
-                    ipAddress.equals("127.0.0.1") ||
-                    ipAddress.equals("0:0:0:0:0:0:0:1") ||
-                    ipAddress.startsWith("0:0:0:0:0:0:0:1%")) {
-                ipAddress = SecurityUtils.getIpAddress();
-            }
-            InitiatePaymentCommand initiatePaymentCommand = InitiatePaymentCommand.builder()
-                    .orderId(orders.getId())
-                    .totalAmount(orders.getTotalAmount())
-                    .ipAddress(ipAddress)
-                    .build();
-
-            sagaProducerService.sendInitiatePaymentCommand(initiatePaymentCommand);
             return orders;
         }
         else {
             throw new AppException(ErrorCode.CART_IS_EMPTY);
         }
+    }
+
+    public void updateStatusOrder(String orderId , OrderStatus orderStatus){
+        if(orderId.isEmpty()){
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+
+        Orders orders = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
+        orders.setOrderStatus(orderStatus);
+        orderRepository.save(orders);
     }
 }

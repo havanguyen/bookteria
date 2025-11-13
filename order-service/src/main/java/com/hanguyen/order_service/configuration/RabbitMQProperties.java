@@ -31,7 +31,7 @@ public class RabbitMQProperties {
         private String orderReply;
 
         private String inventoryRollback;
-        private String inventoryReserver;
+        private String inventoryReserve;
         private String paymentInitiate;
     }
 }

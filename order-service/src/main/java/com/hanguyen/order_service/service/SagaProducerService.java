@@ -24,7 +24,7 @@ public class SagaProducerService {
     public void sendReserveInventoryCommand(ReserveInventoryCommand cmd) {
         log.info("Sending ReserveInventoryCommand for orderId: {}", cmd.getOrderId());
         rabbitTemplate.convertAndSend(rabbitMQProperties.getExchanges().getInventory(),
-                rabbitMQProperties.getRoutingKeys().getInventoryReserver(),
+                rabbitMQProperties.getRoutingKeys().getInventoryReserve(),
                 cmd);
     }
 
