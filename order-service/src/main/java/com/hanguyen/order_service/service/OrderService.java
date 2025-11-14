@@ -21,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -88,9 +89,6 @@ public class OrderService {
             }
             log.info("Order {} saved with PENDING status", orders.getId());
 
-            ApiResponse<String> stringApiResponse = cartClient.deleteCart();
-            log.info("Cart deleted for user: {} , message {}", userId , stringApiResponse);
-
             ReserveInventoryCommand reserveInventoryCommand = ReserveInventoryCommand.builder()
                     .orderId(orders.getId())
                     .items(orderItemDtos)
@@ -114,5 +112,12 @@ public class OrderService {
                 .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
         orders.setOrderStatus(orderStatus);
         orderRepository.save(orders);
+    }
+
+    public String getPaymentUrl( String orderId) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
+
+        return order.getPaymentUrl();
     }
 }

@@ -18,6 +18,9 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -33,7 +36,9 @@ public class InventorySagaConsumer {
     @RabbitListener(queues = "${spring.rabbitmq.queues.inventory-reserve}")
     public void handleReserveInventory(@Payload ReserveInventoryCommand command) {
         log.info("Nhận được lệnh ReserveInventoryCommand cho Order ID: {}", command.getOrderId());
+        List<OrderItemDto> successfullyDecreased = new ArrayList<>();
         boolean success = false;
+
         for(OrderItemDto orderItemDto : command.getItems()){
           success =  inventoryService.decreaseStock(orderItemDto.getBookId() , orderItemDto.getQuantity());
           if (!success){
@@ -49,7 +54,16 @@ public class InventorySagaConsumer {
                         rabbitMQProperties.getRoutingKeys().getOrderReply(),
                         reply
                 );
+                if (!successfullyDecreased.isEmpty()) {
+                  log.warn("Đang rollback {} item đã trừ kho thành công cho order ID: {}", successfullyDecreased.size(), command.getOrderId());
+                  for (OrderItemDto itemToRollback : successfullyDecreased) {
+                      inventoryService.increaseStock(itemToRollback.getBookId(), itemToRollback.getQuantity());
+                    }
+                 }
                 return;
+          }
+          else {
+              successfullyDecreased.add(orderItemDto);
           }
         }
         if (success) {

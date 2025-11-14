@@ -2,10 +2,7 @@ package com.hanguyen.order_service.consumer;
 
 
 import com.hanguyen.order_service.dto.event.InitiatePaymentCommand;
-import com.hanguyen.order_service.dto.reply.InventoryErrorRollBack;
-import com.hanguyen.order_service.dto.reply.InventoryOutOfStockReply;
-import com.hanguyen.order_service.dto.reply.OrderReserverReply;
-import com.hanguyen.order_service.dto.reply.OrderRollBackReply;
+import com.hanguyen.order_service.dto.reply.*;
 import com.hanguyen.order_service.entity.OrderStatus;
 import com.hanguyen.order_service.entity.Orders;
 import com.hanguyen.order_service.repository.OrderRepository;
@@ -38,7 +35,7 @@ public class SagaOrderConsumer {
                 InitiatePaymentCommand initiatePaymentCommand = InitiatePaymentCommand.builder()
                         .orderId(((OrderReserverReply) reply).getOrderId())
                         .totalAmount(orders.get().getTotalAmount())
-                        .ipAddress("127.0.0.1")
+                        .ipAddress(orders.get().getIpAddress())
                         .build();
                 sagaProducerService.sendInitiatePaymentCommand(initiatePaymentCommand);
                 log.info("Send initial Payment command for order id {}" , ((OrderReserverReply) reply).getOrderId());
@@ -51,5 +48,18 @@ public class SagaOrderConsumer {
         else if( reply instanceof OrderRollBackReply){
             orderService.updateStatusOrder(((OrderRollBackReply) reply).getOrderId(), OrderStatus.CANCELLED);
         }
+        else if (reply instanceof PaymentInitiatedReply paymentReply) {
+            log.info("Received PaymentInitiatedReply for order: {}", paymentReply.getOrderId());
+            Optional<Orders> orders = orderRepository.findById(paymentReply.getOrderId());
+            if (orders.isPresent()) {
+                Orders order = orders.get();
+                order.setPaymentUrl(paymentReply.getPaymentUrl());
+                orderRepository.save(order);
+                log.info("Payment URL saved for order: {}", order.getId());
+            } else {
+                log.warn("Order not found for saving payment URL: {}", paymentReply.getOrderId());
+            }
+        }
+
     }
 }

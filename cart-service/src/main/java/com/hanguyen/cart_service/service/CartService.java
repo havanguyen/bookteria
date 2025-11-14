@@ -269,4 +269,15 @@ public class CartService {
                 cartSyncDataEvent
         );
     }
+
+    public void deleteCartByUserId(String userId) {
+        try {
+            cartRepository.deleteById(userId);
+            log.info("Cart deleted for userId: {}", userId);
+        }
+       catch (Exception e){
+           log.info("Deletion cart failed for userId: {}", userId);
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+       }
+    }
 }

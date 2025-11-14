@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 public class CheckoutRequest {
     private ShippingAddress shippingAddress;
     private String Note;
+    private String ipAddress;
 }

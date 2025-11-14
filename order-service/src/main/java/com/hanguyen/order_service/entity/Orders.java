@@ -30,6 +30,10 @@ public class Orders {
     OrderStatus orderStatus;
     String userId;
 
+    String ipAddress;
+
+    String paymentUrl;
+
     Double totalAmount;
 
     @Type(JsonType.class)

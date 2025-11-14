@@ -2,6 +2,7 @@ package com.hanguyen.order_service.service;
 
 import com.hanguyen.order_service.configuration.RabbitMQProperties;
 import com.hanguyen.order_service.dto.event.InitiatePaymentCommand;
+import com.hanguyen.order_service.dto.event.OrderCompletedEvent;
 import com.hanguyen.order_service.dto.event.ReserveInventoryCommand;
 import com.hanguyen.order_service.dto.event.RollbackInventoryCommand;
 import lombok.AccessLevel;
@@ -26,6 +27,15 @@ public class SagaProducerService {
         rabbitTemplate.convertAndSend(rabbitMQProperties.getExchanges().getInventory(),
                 rabbitMQProperties.getRoutingKeys().getInventoryReserve(),
                 cmd);
+    }
+
+    public void sendOrderCompletedNotification(OrderCompletedEvent event) {
+        log.info("Sending OrderCompletedEvent for orderId: {}", event.getOrderId());
+        rabbitTemplate.convertAndSend(
+                rabbitMQProperties.getExchanges().getNotification(),
+                rabbitMQProperties.getRoutingKeys().getNotificationOrderCompleted(),
+                event
+        );
     }
 
     public void sendInitiatePaymentCommand(InitiatePaymentCommand cmd) {

@@ -18,6 +18,7 @@ spring.rabbitmq:
     cart: cart.exchange
     inventory: inventory.exchange
     payment: payment.exchange
+    notification: notification.exchange
 
   queues:
     inventory-reserve: inventory.reserve.queue
@@ -28,6 +29,7 @@ spring.rabbitmq:
     order-reply: order.reply.queue
     payment-initiate: payment.initiate.queue
     payment-failed: payment.failed.queue
+    notification-order-completed: notification.order.completed.queue
 
   routing-keys:
     inventory-reserve: inventory.reserve.key
@@ -38,6 +40,7 @@ spring.rabbitmq:
     order-reply: order.reply.key
     payment-initiate: payment.initiate.key
     payment-failed: payment.failed.key
+    notification-order-completed: notification.order.completed.key
 
 logging:
   pattern:

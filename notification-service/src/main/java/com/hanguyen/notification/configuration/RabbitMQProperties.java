@@ -1,4 +1,4 @@
-package com.hanguyen.order_service.configuration;
+package com.hanguyen.notification.configuration;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -13,29 +13,16 @@ public class RabbitMQProperties {
 
     @Data
     public static class Exchanges {
-        private String order;
-
-        private String inventory;
-        private String payment;
         private String notification;
     }
 
     @Data
     public static class Queues {
-        private String order;
-        private String orderReply;
-
         private String notificationOrderCompleted;
     }
 
     @Data
     public static class RoutingKeys {
-        private String order;
-        private String orderReply;
-
-        private String inventoryRollback;
-        private String inventoryReserve;
-        private String paymentInitiate;
         private String notificationOrderCompleted;
     }
 }
