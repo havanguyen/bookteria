@@ -27,7 +27,9 @@ spring.rabbitmq:
     order: order.queue
     order-reply: order.reply.queue
     payment-initiate: payment.initiate.queue
-    payment-failed: payment.failed.queue
+    payment-reply: payment.reply.queue
+    order-timeout: order.timeout.queue
+    order-delay: order.delay.queue
 
   routing-keys:
     inventory-reserve: inventory.reserve.key
@@ -37,7 +39,9 @@ spring.rabbitmq:
     order: order.key
     order-reply: order.reply.key
     payment-initiate: payment.initiate.key
-    payment-failed: payment.failed.key
+    payment-reply: payment.reply.key
+    order-timeout: order.timeout.key
+    order-delay: order.delay.key
 
 logging:
   pattern:

@@ -2,6 +2,7 @@ package com.hanguyen.payment_service.service;
 
 
 import com.hanguyen.payment_service.configuration.RabbitMQProperties;
+import com.hanguyen.payment_service.dto.event.CheckOrderTimeoutEvent;
 import com.hanguyen.payment_service.dto.reponse.PaymentInitiatedReply;
 import com.hanguyen.payment_service.dto.request.InitiatePaymentCommand;
 import com.hanguyen.payment_service.entity.PaymentStatus;
@@ -66,6 +67,18 @@ public class PaymentInitConsumer {
                     reply
             );
             log.info("Sent payment URL reply for orderId: {}", initiatePaymentCommand.getOrderId());
+
+
+            CheckOrderTimeoutEvent checkOrderTimeoutEvent = CheckOrderTimeoutEvent.builder()
+                    .orderId(initiatePaymentCommand.getOrderId())
+                    .build();
+
+            rabbitTemplate.convertAndSend(
+                    rabbitMQProperties.getExchanges().getOrder(),
+                    rabbitMQProperties.getRoutingKeys().getOrderDelay(),
+                    checkOrderTimeoutEvent
+            );
+            log.info("Sent order timeout check message for orderId: {}", initiatePaymentCommand.getOrderId());
 
         } catch (Exception e) {
             log.error("Error creating payment URL for orderId: {}", initiatePaymentCommand.getOrderId(), e);

@@ -1,5 +1,6 @@
 package com.hanguyen.payment_service.service;
 
+import com.hanguyen.payment_service.configuration.RabbitMQProperties;
 import com.hanguyen.payment_service.dto.event.PaymentFailedEvent;
 import com.hanguyen.payment_service.dto.event.PaymentSucceededEvent;
 import com.hanguyen.payment_service.dto.reponse.VNPayIpnResponse;
@@ -11,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +28,10 @@ import java.util.Map;
 public class PaymentProcessingService {
 
     PaymentRepository transactionRepository;
-    KafkaTemplate<String, Object> kafkaTemplate;
     VNPayService vnPayService;
+    RabbitTemplate rabbitTemplate;
+
+    RabbitMQProperties rabbitMQProperties;
 
     @Transactional
     public VNPayIpnResponse processIpn(HttpServletRequest request) {
@@ -77,21 +81,27 @@ public class PaymentProcessingService {
                 tx.setPaymentStatus(PaymentStatus.SUCCESS);
                 transactionRepository.save(tx);
 
-                kafkaTemplate.send("payment.events", tx.getOrderId(),
+                rabbitTemplate.convertAndSend(
+                        rabbitMQProperties.getExchanges().getPayment(),
+                        rabbitMQProperties.getRoutingKeys().getPaymentReply(),
                         PaymentSucceededEvent.builder()
                                 .orderId(tx.getOrderId())
                                 .message("SUCCESS")
-                                .build());
+                                .build()
+                );
             } else {
                 log.info("Payment FAILED for TxnRef: {}", vnp_TxnRef);
                 tx.setPaymentStatus(PaymentStatus.FAILED);
                 transactionRepository.save(tx);
 
-                kafkaTemplate.send("payment.events", tx.getOrderId(),
+                rabbitTemplate.convertAndSend(
+                        rabbitMQProperties.getExchanges().getPayment(),
+                        rabbitMQProperties.getRoutingKeys().getPaymentReply(),
                         PaymentFailedEvent.builder()
                                 .orderId(tx.getOrderId())
                                 .message("FAILED")
-                                .build());
+                                .build()
+                );
             }
             return new VNPayIpnResponse("00", "Confirm Success");
 

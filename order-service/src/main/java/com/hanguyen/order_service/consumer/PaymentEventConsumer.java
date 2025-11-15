@@ -14,7 +14,8 @@ import com.hanguyen.order_service.service.OrderService;
 import com.hanguyen.order_service.service.SagaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,8 +35,8 @@ public class PaymentEventConsumer {
     private final CartClient cartClient;
     private final ProfileClient profileClient;
 
-    @KafkaListener(topics = "payment.events", groupId = "order-group")
-    public void handlePaymentEvent(Object event) {
+    @RabbitListener(queues = "spring.rabbitmq.queues.payment-reply")
+    public void handlePaymentEvent(@Payload Object event) {
         if (event instanceof PaymentSucceededEvent successEvent) {
             log.info("Received PaymentSucceededEvent for order: {}", successEvent.getOrderId());
             Optional<Orders> orderOpt = orderRepository.findById(successEvent.getOrderId());

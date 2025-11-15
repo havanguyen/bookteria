@@ -24,6 +24,10 @@ RabbitMQProperties {
         private String paymentInitiate;
 
         private String orderReply;
+
+        private String paymentReply;
+        private String orderTimeout;
+        private String orderDelay;
     }
 
     @Data
@@ -31,6 +35,9 @@ RabbitMQProperties {
         private String paymentInitiate;
 
         private String orderReply;
+        private String paymentReply;
+        private String orderTimeout;
+        private String orderDelay;
     }
 }
 

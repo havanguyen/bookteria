@@ -1,10 +1,15 @@
 package com.hanguyen.order_service.consumer;
 
 
+import com.hanguyen.order_service.dto.event.CheckOrderTimeoutEvent;
 import com.hanguyen.order_service.dto.event.InitiatePaymentCommand;
+import com.hanguyen.order_service.dto.event.OrderItemDto;
+import com.hanguyen.order_service.dto.event.RollbackInventoryCommand;
 import com.hanguyen.order_service.dto.reply.*;
+import com.hanguyen.order_service.entity.OrderItem;
 import com.hanguyen.order_service.entity.OrderStatus;
 import com.hanguyen.order_service.entity.Orders;
+import com.hanguyen.order_service.repository.OrderItemRepository;
 import com.hanguyen.order_service.repository.OrderRepository;
 import com.hanguyen.order_service.service.OrderService;
 import com.hanguyen.order_service.service.SagaProducerService;
@@ -16,6 +21,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,6 +33,8 @@ public class SagaOrderConsumer {
     OrderRepository orderRepository;
     OrderService orderService;
     SagaProducerService sagaProducerService;
+
+    OrderItemRepository orderItemRepository;
 
     @RabbitListener(queues = "spring.rabbitmq.queues.order-reply")
     public void handleOrderReply(@Payload Object reply){
@@ -41,9 +50,24 @@ public class SagaOrderConsumer {
                 log.info("Send initial Payment command for order id {}" , ((OrderReserverReply) reply).getOrderId());
             }
         }
-        else if( reply instanceof InventoryOutOfStockReply || reply instanceof InventoryErrorRollBack){
-            assert reply instanceof InventoryOutOfStockReply;
-            orderService.updateStatusOrder(((InventoryOutOfStockReply) reply).getOrderId(), OrderStatus.FAILED);
+        else if (reply instanceof  InventoryOutOfStockReply outOfStockReply) {
+            log.warn("Received InventoryOutOfStockReply for order: {}", outOfStockReply.getOrderId());
+
+            orderService.updateStatusOrder(outOfStockReply.getOrderId(), OrderStatus.FAILED);
+
+            if (outOfStockReply.getItemsToRollback() != null && !outOfStockReply.getItemsToRollback().isEmpty()) {
+                log.info("Sending explicit RollbackInventoryCommand for {} items on order {}.",
+                        outOfStockReply.getItemsToRollback().size(), outOfStockReply.getOrderId());
+
+                RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
+                        .orderId(outOfStockReply.getOrderId())
+                        .items(outOfStockReply.getItemsToRollback())
+                        .build();
+                sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
+            }
+        }
+        else if( reply instanceof InventoryErrorRollBack){
+            orderService.updateStatusOrder(((InventoryErrorRollBack) reply).getOrderId(), OrderStatus.FAILED);
         }
         else if( reply instanceof OrderRollBackReply){
             orderService.updateStatusOrder(((OrderRollBackReply) reply).getOrderId(), OrderStatus.CANCELLED);
@@ -61,5 +85,42 @@ public class SagaOrderConsumer {
             }
         }
 
+    }
+    @RabbitListener(queues = "${spring.rabbitmq.queues.order-timeout}")
+    public void handleOrderTimeout(CheckOrderTimeoutEvent event) {
+        log.warn("Received order timeout check for orderId: {}", event.getOrderId());
+
+        Optional<Orders> orderOpt = orderRepository.findById(event.getOrderId());
+
+        if (orderOpt.isEmpty()) {
+            log.error("Order not found for timeout check: {}", event.getOrderId());
+            return;
+        }
+
+        Orders order = orderOpt.get();
+
+        if (order.getOrderStatus() == OrderStatus.PENDING) {
+            log.info("Order {} is still PENDING. Cancelling and rolling back inventory.", order.getId());
+
+            orderService.updateStatusOrder(order.getId(), OrderStatus.CANCELLED);
+
+            List<OrderItem> items = orderItemRepository.findByOrders_Id(order.getId());
+            List<OrderItemDto> itemDtos = new ArrayList<>();
+            for (OrderItem item : items) {
+                itemDtos.add(new OrderItemDto(item.getProductId(), item.getQuantity()));
+            }
+
+            RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
+                    .orderId(order.getId())
+                    .items(itemDtos)
+                    .build();
+
+            sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
+            log.info("Sent RollbackInventoryCommand for timeout on order: {}", order.getId());
+
+        } else {
+            log.info("Order {} has already been processed (Status: {}). Ignoring timeout check.",
+                    order.getId(), order.getOrderStatus());
+        }
     }
 }

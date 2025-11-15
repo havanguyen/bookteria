@@ -1,8 +1,11 @@
 package com.hanguyen.inventory_service.dto.reply;
 
 
+import com.hanguyen.inventory_service.dto.request.OrderItemDto;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 @Builder
 @Data
@@ -14,4 +17,5 @@ public class InventoryOutOfStockReply {
     String bookId;
     String message;
     int quantity;
+    private List<OrderItemDto> itemsToRollback;
 }

@@ -26,6 +26,8 @@ public class RabbitMQProperties {
         private String orderReply;
 
         private String notificationOrderCompleted;
+        private String orderTimeout;
+        private String orderDelay;
     }
 
     @Data
@@ -37,6 +39,8 @@ public class RabbitMQProperties {
         private String inventoryReserve;
         private String paymentInitiate;
         private String notificationOrderCompleted;
+        private String orderTimeout;
+        private String orderDelay;
     }
 }
 

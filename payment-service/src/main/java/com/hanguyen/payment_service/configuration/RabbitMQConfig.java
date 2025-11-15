@@ -30,10 +30,22 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue queueReplyPayment(){
+        return new Queue(rabbitMQProperties.getQueues().getPaymentReply());
+    }
+
+    @Bean
     public Binding paymentInitBiding(Queue queueInitPayment , DirectExchange directExchange){
         return BindingBuilder.bind(queueInitPayment)
                 .to(directExchange)
                 .with(rabbitMQProperties.getRoutingKeys().getPaymentInitiate());
+    }
+
+    @Bean
+    public Binding paymentReplyBiding(Queue queueReplyPayment , DirectExchange directExchange){
+        return BindingBuilder.bind(queueReplyPayment)
+                .to(directExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getPaymentReply());
     }
 
     @Bean

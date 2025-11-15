@@ -46,6 +46,7 @@ public class InventorySagaConsumer {
                       .orderId(command.getOrderId())
                       .quantity(orderItemDto.getQuantity())
                       .bookId(orderItemDto.getBookId())
+                      .itemsToRollback(successfullyDecreased)
                       .message(String.format("Book has id %s out of stock , quantity only %d left",
                               orderItemDto.getBookId() , orderItemDto.getQuantity()))
                       .build();
@@ -54,12 +55,6 @@ public class InventorySagaConsumer {
                         rabbitMQProperties.getRoutingKeys().getOrderReply(),
                         reply
                 );
-                if (!successfullyDecreased.isEmpty()) {
-                  log.warn("Đang rollback {} item đã trừ kho thành công cho order ID: {}", successfullyDecreased.size(), command.getOrderId());
-                  for (OrderItemDto itemToRollback : successfullyDecreased) {
-                      inventoryService.increaseStock(itemToRollback.getBookId(), itemToRollback.getQuantity());
-                    }
-                 }
                 return;
           }
           else {
