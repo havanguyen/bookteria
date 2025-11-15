@@ -6,6 +6,8 @@ import com.hanguyen.payment_service.dto.event.PaymentSucceededEvent;
 import com.hanguyen.payment_service.dto.reponse.VNPayIpnResponse;
 import com.hanguyen.payment_service.entity.PaymentStatus;
 import com.hanguyen.payment_service.entity.PaymentTransactions;
+import com.hanguyen.payment_service.exception.AppException;
+import com.hanguyen.payment_service.exception.ErrorCode;
 import com.hanguyen.payment_service.repository.PaymentRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -124,7 +127,7 @@ public class PaymentProcessingService {
             }
         });
 
-        String frontendUrl = "http://localhost:5173/payment/result";
+        String frontendUrl = "https://bookteria.xyz/payment/result";
 
         boolean isValidSignature = vnPayService.validateSignature(rawParamsMap);
         if (!isValidSignature) {
@@ -138,5 +141,13 @@ public class PaymentProcessingService {
         }
 
         return URI.create(frontendUrl + "?orderId=" + orderId + "&code=" + vnp_ResponseCode);
+    }
+
+    public List<PaymentTransactions> getAllPayment(){
+        return transactionRepository.findAll();
+    }
+
+    public PaymentTransactions getPaymentById(String paymentId){
+        return transactionRepository.findById(paymentId).orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
     }
 }
