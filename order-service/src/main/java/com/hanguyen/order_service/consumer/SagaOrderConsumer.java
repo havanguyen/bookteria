@@ -36,7 +36,7 @@ public class SagaOrderConsumer {
 
     OrderItemRepository orderItemRepository;
 
-    @RabbitListener(queues = "spring.rabbitmq.queues.order-reply")
+    @RabbitListener(queues = "${spring.rabbitmq.queues.order-reply}")
     public void handleOrderReply(@Payload Object reply){
         if(reply instanceof OrderReserverReply){
             Optional<Orders> orders = orderRepository.findById(((OrderReserverReply) reply).getOrderId());

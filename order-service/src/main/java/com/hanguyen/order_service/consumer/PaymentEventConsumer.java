@@ -35,7 +35,7 @@ public class PaymentEventConsumer {
     private final CartClient cartClient;
     private final ProfileClient profileClient;
 
-    @RabbitListener(queues = "spring.rabbitmq.queues.payment-reply")
+    @RabbitListener(queues = "${spring.rabbitmq.queues.payment-reply}")
     public void handlePaymentEvent(@Payload Object event) {
         if (event instanceof PaymentSucceededEvent successEvent) {
             log.info("Received PaymentSucceededEvent for order: {}", successEvent.getOrderId());
