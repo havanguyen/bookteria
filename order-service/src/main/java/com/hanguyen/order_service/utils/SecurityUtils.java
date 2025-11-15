@@ -14,19 +14,4 @@ public class SecurityUtils {
        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
        return jwt.getSubject();
     }
-
-    static public String getIpAddress(){
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url("https://api.ipify.org")
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
-            assert response.body() != null;
-            log.info("ip address {}" , response.body().string());
-            return response.body().string();
-        } catch (Exception e) {
-            return "171.227.4.230";
-        }
-    }
 }

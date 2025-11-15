@@ -120,4 +120,25 @@ public class OrderService {
 
         return order.getPaymentUrl();
     }
+
+    public List<Orders> getMyOrders(){
+        String userId = SecurityUtils.getUserId();
+        return orderRepository.findAllByUserId(userId);
+    }
+
+    public Orders getOrderById(String orderId){
+        return orderRepository.findById(orderId).orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
+    }
+
+    public void deleteOrderById(String orderId){
+        try {
+            orderRepository.deleteById(orderId);
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+    }
+
+    public List<Orders> getAllOrders(){
+        return orderRepository.findAll();
+    }
 }
