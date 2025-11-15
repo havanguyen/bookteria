@@ -5,7 +5,9 @@ import com.hanguyen.payment_service.dto.reponse.VNPayIpnResponse;
 import com.hanguyen.payment_service.entity.PaymentTransactions;
 import com.hanguyen.payment_service.service.PaymentProcessingService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/payment")
+@FieldDefaults(level = AccessLevel.PRIVATE , makeFinal = true)
 public class PaymentController {
 
     PaymentProcessingService paymentProcessingService;
