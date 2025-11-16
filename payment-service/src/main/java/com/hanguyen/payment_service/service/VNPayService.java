@@ -70,7 +70,7 @@ public class VNPayService {
 
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(fieldValue);
+                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
 
                 if (itr.hasNext()) {
                     query.append('&');
@@ -101,7 +101,7 @@ public class VNPayService {
             if ((fieldValue != null) && (!fieldValue.isEmpty())) {
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(fieldValue);
+                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
 
                 if (itr.hasNext()) {
                     hashData.append('&');
