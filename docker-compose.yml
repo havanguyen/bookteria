@@ -30,6 +30,9 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+    networks:
+      - bookteria-net
+
 
   discovery-server:
     image: ${DOCKER_USERNAME}/discovery-server:latest
