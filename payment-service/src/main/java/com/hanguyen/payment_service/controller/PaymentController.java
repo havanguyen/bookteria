@@ -24,7 +24,7 @@ public class PaymentController {
 
     PaymentProcessingService paymentProcessingService;
 
-    @PostMapping("/ipn/vnpay")
+    @GetMapping("/ipn/vnpay")
     public ApiResponse<VNPayIpnResponse> handleVNPayIPN(HttpServletRequest request) {
         VNPayIpnResponse ipnResponse = paymentProcessingService.processIpn(request);
         return ApiResponse.<VNPayIpnResponse>builder()
