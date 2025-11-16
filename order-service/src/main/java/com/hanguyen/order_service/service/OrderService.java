@@ -78,6 +78,7 @@ public class OrderService {
                     .userId(userId)
                     .orderStatus(OrderStatus.PENDING)
                     .totalAmount(amountTotal)
+                    .ipAddress(checkoutRequest.getIpAddress())
                     .note(checkoutRequest.getNote())
                     .build();
 
