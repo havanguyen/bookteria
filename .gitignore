@@ -1,3 +1,4 @@
 target/
 config-server/src/main/resources/
 .env
+.env_deploy
