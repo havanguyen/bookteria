@@ -33,9 +33,7 @@ public class SagaProducerService {
         log.info("Sending OrderCompletedEvent for orderId: {}", event.getOrderId());
         rabbitTemplate.convertAndSend(
                 rabbitMQProperties.getExchanges().getNotification(),
-                rabbitMQProperties.getRoutingKeys().getNotificationOrderCompleted(),
-                event
-        );
+                rabbitMQProperties.getRoutingKeys().getNotificationOrderCompleted(), event);
     }
 
     public void sendInitiatePaymentCommand(InitiatePaymentCommand cmd) {

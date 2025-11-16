@@ -27,7 +27,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE , makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PaymentProcessingService {
 
     PaymentRepository transactionRepository;
@@ -85,8 +85,8 @@ public class PaymentProcessingService {
                 transactionRepository.save(tx);
 
                 rabbitTemplate.convertAndSend(
-                        rabbitMQProperties.getExchanges().getPayment(),
-                        rabbitMQProperties.getRoutingKeys().getPaymentReply(),
+                        rabbitMQProperties.getExchanges().getOrder(),
+                        rabbitMQProperties.getRoutingKeys().getPaymentSuccessReply(),
                         PaymentSucceededEvent.builder()
                                 .orderId(tx.getOrderId())
                                 .message("SUCCESS")
@@ -98,8 +98,8 @@ public class PaymentProcessingService {
                 transactionRepository.save(tx);
 
                 rabbitTemplate.convertAndSend(
-                        rabbitMQProperties.getExchanges().getPayment(),
-                        rabbitMQProperties.getRoutingKeys().getPaymentReply(),
+                        rabbitMQProperties.getExchanges().getOrder(),
+                        rabbitMQProperties.getRoutingKeys().getPaymentFailedReply(),
                         PaymentFailedEvent.builder()
                                 .orderId(tx.getOrderId())
                                 .message("FAILED")
@@ -143,11 +143,11 @@ public class PaymentProcessingService {
         return URI.create(frontendUrl + "?orderId=" + orderId + "&code=" + vnp_ResponseCode);
     }
 
-    public List<PaymentTransactions> getAllPayment(){
+    public List<PaymentTransactions> getAllPayment() {
         return transactionRepository.findAll();
     }
 
-    public PaymentTransactions getPaymentById(String paymentId){
+    public PaymentTransactions getPaymentById(String paymentId) {
         return transactionRepository.findById(paymentId).orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
     }
 }

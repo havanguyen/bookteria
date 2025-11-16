@@ -35,67 +35,68 @@ public class PaymentEventConsumer {
     private final CartClient cartClient;
     private final ProfileClient profileClient;
 
-    @RabbitListener(queues = "${spring.rabbitmq.queues.payment-reply}")
-    public void handlePaymentEvent(@Payload Object event) {
-        if (event instanceof PaymentSucceededEvent successEvent) {
-            log.info("Received PaymentSucceededEvent for order: {}", successEvent.getOrderId());
-            Optional<Orders> orderOpt = orderRepository.findById(successEvent.getOrderId());
-            if (orderOpt.isEmpty()) {
-                log.error("Order not found for cart deletion: {}", successEvent.getOrderId());
-                return;
-            }
-            Orders order = orderOpt.get();
-            orderService.updateStatusOrder(successEvent.getOrderId(), OrderStatus.PAID);
-            try {
-                ApiResponse<String> message = cartClient.deleteCartByUserId(order.getUserId());
-                log.info(message.getResult());
-            } catch (Exception e) {
-                log.error("Failed to delete cart : {}" , e.getMessage());
-            }
+    @RabbitListener(queues = "${spring.rabbitmq.queues.payment-success-reply}")
+    public void handlePaymentSuccess(@Payload PaymentSucceededEvent successEvent) {
+        log.info("Received PaymentSucceededEvent for order: {}", successEvent.getOrderId());
+        Optional<Orders> orderOpt = orderRepository.findById(successEvent.getOrderId());
+        if (orderOpt.isEmpty()) {
+            log.error("Order not found for cart deletion: {}", successEvent.getOrderId());
+            return;
+        }
+        Orders order = orderOpt.get();
+        orderService.updateStatusOrder(successEvent.getOrderId(), OrderStatus.PAID);
+        try {
+            ApiResponse<String> message = cartClient.deleteCartByUserId(order.getUserId());
+            log.info(message.getResult());
+        } catch (Exception e) {
+            log.error("Failed to delete cart : {}", e.getMessage());
+        }
 
-            try {
-                UserProfileResponse profileResponse = profileClient.getProfileByUserId(order.getUserId());
+        try {
+            UserProfileResponse profileResponse = profileClient.getProfileByUserId(order.getUserId());
 
-                OrderCompletedEvent notificationEvent = OrderCompletedEvent.builder()
-                        .orderId(order.getId())
-                        .userId(order.getUserId())
-                        .userEmail(profileResponse.getEmail())
-                        .customerName(profileResponse.getFirstName() + " " + profileResponse.getLastName())
-                        .totalAmount(order.getTotalAmount())
-                        .build();
-
-                sagaProducerService.sendOrderCompletedNotification(notificationEvent);
-                log.info("Sent order completed notification for order: {}", order.getId());
-
-            } catch (Exception e) {
-                log.error("Failed to get user profile or send notification for order {}: {}",
-                        order.getId(), e.getMessage());
-            }
-        } else if (event instanceof PaymentFailedEvent failedEvent) {
-            log.warn("Received PaymentFailedEvent for order: {}", failedEvent.getOrderId());
-
-            orderService.updateStatusOrder(failedEvent.getOrderId(), OrderStatus.FAILED);
-
-            Optional<Orders> orderOpt = orderRepository.findById(failedEvent.getOrderId());
-            if (orderOpt.isEmpty()) {
-                log.error("Order not found for rollback: {}", failedEvent.getOrderId());
-                return;
-            }
-
-            Orders order = orderOpt.get();
-            List<OrderItem> items = orderItemRepository.findByOrders_Id(order.getId());
-            List<OrderItemDto> itemDtos = new ArrayList<>();
-            for (OrderItem item : items) {
-                itemDtos.add(new OrderItemDto(item.getProductId(), item.getQuantity()));
-            }
-
-            RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
+            OrderCompletedEvent notificationEvent = OrderCompletedEvent.builder()
                     .orderId(order.getId())
-                    .items(itemDtos)
+                    .userId(order.getUserId())
+                    .userEmail(profileResponse.getEmail())
+                    .customerName(profileResponse.getFirstName() + " " + profileResponse.getLastName())
+                    .totalAmount(order.getTotalAmount())
                     .build();
 
-            sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
-            log.info("Sent RollbackInventoryCommand for failed payment on order: {}", order.getId());
+            sagaProducerService.sendOrderCompletedNotification(notificationEvent);
+            log.info("Sent order completed notification for order: {}", order.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to get user profile or send notification for order {}: {}",
+                    order.getId(), e.getMessage());
         }
+    }
+
+    @RabbitListener(queues = "${spring.rabbitmq.queues.payment-failed-reply}")
+    public void handlePaymentFailed(@Payload PaymentFailedEvent failedEvent) {
+        log.warn("Received PaymentFailedEvent for order: {}", failedEvent.getOrderId());
+
+        orderService.updateStatusOrder(failedEvent.getOrderId(), OrderStatus.FAILED);
+
+        Optional<Orders> orderOpt = orderRepository.findById(failedEvent.getOrderId());
+        if (orderOpt.isEmpty()) {
+            log.error("Order not found for rollback: {}", failedEvent.getOrderId());
+            return;
+        }
+
+        Orders order = orderOpt.get();
+        List<OrderItem> items = orderItemRepository.findByOrders_Id(order.getId());
+        List<OrderItemDto> itemDtos = new ArrayList<>();
+        for (OrderItem item : items) {
+            itemDtos.add(new OrderItemDto(item.getProductId(), item.getQuantity()));
+        }
+
+        RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
+                .orderId(order.getId())
+                .items(itemDtos)
+                .build();
+
+        sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
+        log.info("Sent RollbackInventoryCommand for failed payment on order: {}", order.getId());
     }
 }

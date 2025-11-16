@@ -1,6 +1,5 @@
 package com.hanguyen.order_service.consumer;
 
-
 import com.hanguyen.order_service.dto.event.CheckOrderTimeoutEvent;
 import com.hanguyen.order_service.dto.event.InitiatePaymentCommand;
 import com.hanguyen.order_service.dto.event.OrderItemDto;
@@ -28,7 +27,7 @@ import java.util.Optional;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE , makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SagaOrderConsumer {
     OrderRepository orderRepository;
     OrderService orderService;
@@ -36,58 +35,64 @@ public class SagaOrderConsumer {
 
     OrderItemRepository orderItemRepository;
 
-    @RabbitListener(queues = "${spring.rabbitmq.queues.order-reply}")
-    public void handleOrderReply(@Payload Object reply){
-        if(reply instanceof OrderReserverReply){
-            Optional<Orders> orders = orderRepository.findById(((OrderReserverReply) reply).getOrderId());
-            if(orders.isPresent()){
-                InitiatePaymentCommand initiatePaymentCommand = InitiatePaymentCommand.builder()
-                        .orderId(((OrderReserverReply) reply).getOrderId())
-                        .totalAmount(orders.get().getTotalAmount())
-                        .ipAddress(orders.get().getIpAddress())
-                        .build();
-                sagaProducerService.sendInitiatePaymentCommand(initiatePaymentCommand);
-                log.info("Send initial Payment command for order id {}" , ((OrderReserverReply) reply).getOrderId());
-            }
+    @RabbitListener(queues = "${spring.rabbitmq.queues.inventory-reserve-reply}")
+    public void handleInventoryReserved(@Payload OrderReserverReply reply) {
+        Optional<Orders> orders = orderRepository.findById(reply.getOrderId());
+        if (orders.isPresent()) {
+            InitiatePaymentCommand initiatePaymentCommand = InitiatePaymentCommand.builder()
+                    .orderId(reply.getOrderId())
+                    .totalAmount(orders.get().getTotalAmount())
+                    .ipAddress(orders.get().getIpAddress())
+                    .build();
+            sagaProducerService.sendInitiatePaymentCommand(initiatePaymentCommand);
+            log.info("Send initial Payment command for order id {}", reply.getOrderId());
         }
-        else if (reply instanceof  InventoryOutOfStockReply outOfStockReply) {
-            log.warn("Received InventoryOutOfStockReply for order: {}", outOfStockReply.getOrderId());
-
-            orderService.updateStatusOrder(outOfStockReply.getOrderId(), OrderStatus.FAILED);
-
-            if (outOfStockReply.getItemsToRollback() != null && !outOfStockReply.getItemsToRollback().isEmpty()) {
-                log.info("Sending explicit RollbackInventoryCommand for {} items on order {}.",
-                        outOfStockReply.getItemsToRollback().size(), outOfStockReply.getOrderId());
-
-                RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
-                        .orderId(outOfStockReply.getOrderId())
-                        .items(outOfStockReply.getItemsToRollback())
-                        .build();
-                sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
-            }
-        }
-        else if( reply instanceof InventoryErrorRollBack){
-            orderService.updateStatusOrder(((InventoryErrorRollBack) reply).getOrderId(), OrderStatus.FAILED);
-        }
-        else if( reply instanceof OrderRollBackReply){
-            orderService.updateStatusOrder(((OrderRollBackReply) reply).getOrderId(), OrderStatus.CANCELLED);
-        }
-        else if (reply instanceof PaymentInitiatedReply paymentReply) {
-            log.info("Received PaymentInitiatedReply for order: {}", paymentReply.getOrderId());
-            Optional<Orders> orders = orderRepository.findById(paymentReply.getOrderId());
-            if (orders.isPresent()) {
-                Orders order = orders.get();
-                order.setPaymentUrl(paymentReply.getPaymentUrl());
-                orderRepository.save(order);
-                log.info("Payment URL saved for order: {}", order.getId());
-            } else {
-                log.warn("Order not found for saving payment URL: {}", paymentReply.getOrderId());
-            }
-        }
-
     }
+
+    @RabbitListener(queues = "${spring.rabbitmq.queues.inventory-oot-reply}")
+    public void handleInventoryOutOfStock(@Payload InventoryOutOfStockReply outOfStockReply) {
+        log.warn("Received InventoryOutOfStockReply for order: {}", outOfStockReply.getOrderId());
+
+        orderService.updateStatusOrder(outOfStockReply.getOrderId(), OrderStatus.FAILED);
+
+        if (outOfStockReply.getItemsToRollback() != null && !outOfStockReply.getItemsToRollback().isEmpty()) {
+            log.info("Sending explicit RollbackInventoryCommand for {} items on order {}.",
+                    outOfStockReply.getItemsToRollback().size(), outOfStockReply.getOrderId());
+
+            RollbackInventoryCommand rollbackCmd = RollbackInventoryCommand.builder()
+                    .orderId(outOfStockReply.getOrderId())
+                    .items(outOfStockReply.getItemsToRollback())
+                    .build();
+            sagaProducerService.sendRollbackInventoryCommand(rollbackCmd);
+        }
+    }
+
+    @RabbitListener(queues = "${spring.rabbitmq.queues.inventory-error-reply}")
+    public void handleInventoryRollbackError(@Payload InventoryErrorRollBack reply) {
+        orderService.updateStatusOrder(reply.getOrderId(), OrderStatus.FAILED);
+    }
+
+    @RabbitListener(queues = "${spring.rabbitmq.queues.inventory-rollback-reply}")
+    public void handleInventoryRollback(@Payload OrderRollBackReply reply) {
+        orderService.updateStatusOrder(reply.getOrderId(), OrderStatus.CANCELLED);
+    }
+
+    @RabbitListener(queues = "${spring.rabbitmq.queues.payment-init-reply}")
+    public void handlePaymentInitiated(@Payload PaymentInitiatedReply paymentReply) {
+        log.info("Received PaymentInitiatedReply for order: {}", paymentReply.getOrderId());
+        Optional<Orders> orders = orderRepository.findById(paymentReply.getOrderId());
+        if (orders.isPresent()) {
+            Orders order = orders.get();
+            order.setPaymentUrl(paymentReply.getPaymentUrl());
+            orderRepository.save(order);
+            log.info("Payment URL saved for order: {}", order.getId());
+        } else {
+            log.warn("Order not found for saving payment URL: {}", paymentReply.getOrderId());
+        }
+    }
+
     @RabbitListener(queues = "${spring.rabbitmq.queues.order-timeout}")
-    public void handleOrderTimeout(CheckOrderTimeoutEvent event) {
+    public void handleOrderTimeout(@Payload CheckOrderTimeoutEvent event) {
         log.warn("Received order timeout check for orderId: {}", event.getOrderId());
 
         Optional<Orders> orderOpt = orderRepository.findById(event.getOrderId());

@@ -1,6 +1,5 @@
 package com.hanguyen.payment_service.service;
 
-
 import com.hanguyen.payment_service.configuration.RabbitMQProperties;
 import com.hanguyen.payment_service.dto.event.CheckOrderTimeoutEvent;
 import com.hanguyen.payment_service.dto.reponse.PaymentInitiatedReply;
@@ -22,29 +21,28 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@FieldDefaults(level =  AccessLevel.PRIVATE , makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PaymentInitConsumer {
     PaymentRepository paymentRepository;
 
     VNPayService vnPayService;
-    RabbitMQProperties  rabbitMQProperties;
+    RabbitMQProperties rabbitMQProperties;
     RabbitTemplate rabbitTemplate;
 
-
     @RabbitListener(queues = "${spring.rabbitmq.queues.payment-initiate}")
-    public void handleInventoryUpdate(@Payload InitiatePaymentCommand initiatePaymentCommand){
-        log.info("Get init payment command event with order id {} " , initiatePaymentCommand.getOrderId());
+    public void handleInventoryUpdate(@Payload InitiatePaymentCommand initiatePaymentCommand) {
+        log.info("Get init payment command event with order id {} ", initiatePaymentCommand.getOrderId());
 
         try {
             String vnp_TxnRef = UUID.randomUUID().toString();
             String paymentUrl = vnPayService.createPaymentUrl(
                     initiatePaymentCommand.getOrderId(),
                     initiatePaymentCommand.getTotalAmount(),
-                    vnp_TxnRef ,
+                    vnp_TxnRef,
                     initiatePaymentCommand.getIpAddress()
             );
 
-            log.info("Create url {}" , paymentUrl);
+            log.info("Create url {}", paymentUrl);
 
             PaymentTransactions transaction = PaymentTransactions.builder()
                     .orderId(initiatePaymentCommand.getOrderId())
@@ -63,11 +61,10 @@ public class PaymentInitConsumer {
 
             rabbitTemplate.convertAndSend(
                     rabbitMQProperties.getExchanges().getOrder(),
-                    rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                    rabbitMQProperties.getRoutingKeys().getPaymentInitReply(),
                     reply
             );
             log.info("Sent payment URL reply for orderId: {}", initiatePaymentCommand.getOrderId());
-
 
             CheckOrderTimeoutEvent checkOrderTimeoutEvent = CheckOrderTimeoutEvent.builder()
                     .orderId(initiatePaymentCommand.getOrderId())
@@ -91,7 +88,7 @@ public class PaymentInitConsumer {
 
             rabbitTemplate.convertAndSend(
                     rabbitMQProperties.getExchanges().getOrder(),
-                    rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                    rabbitMQProperties.getRoutingKeys().getPaymentInitReply(),
                     reply
             );
         }

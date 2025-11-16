@@ -32,6 +32,7 @@ public class Orders {
 
     String ipAddress;
 
+    @Column(columnDefinition = "TEXT")
     String paymentUrl;
 
     Double totalAmount;

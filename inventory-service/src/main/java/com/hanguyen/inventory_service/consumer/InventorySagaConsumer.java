@@ -40,26 +40,26 @@ public class InventorySagaConsumer {
         boolean success = false;
 
         for(OrderItemDto orderItemDto : command.getItems()){
-          success =  inventoryService.decreaseStock(orderItemDto.getBookId() , orderItemDto.getQuantity());
-          if (!success){
-              InventoryOutOfStockReply reply = InventoryOutOfStockReply.builder()
-                      .orderId(command.getOrderId())
-                      .quantity(orderItemDto.getQuantity())
-                      .bookId(orderItemDto.getBookId())
-                      .itemsToRollback(successfullyDecreased)
-                      .message(String.format("Book has id %s out of stock , quantity only %d left",
-                              orderItemDto.getBookId() , orderItemDto.getQuantity()))
-                      .build();
+            success =  inventoryService.decreaseStock(orderItemDto.getBookId() , orderItemDto.getQuantity());
+            if (!success){
+                InventoryOutOfStockReply reply = InventoryOutOfStockReply.builder()
+                        .orderId(command.getOrderId())
+                        .quantity(orderItemDto.getQuantity())
+                        .bookId(orderItemDto.getBookId())
+                        .itemsToRollback(successfullyDecreased)
+                        .message(String.format("Book has id %s out of stock , quantity only %d left",
+                                orderItemDto.getBookId() , orderItemDto.getQuantity()))
+                        .build();
                 rabbitTemplate.convertAndSend(
                         rabbitMQProperties.getExchanges().getOrder(),
-                        rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                        rabbitMQProperties.getRoutingKeys().getInventoryOotReply(),
                         reply
                 );
                 return;
-          }
-          else {
-              successfullyDecreased.add(orderItemDto);
-          }
+            }
+            else {
+                successfullyDecreased.add(orderItemDto);
+            }
         }
         if (success) {
             OrderReserverReply reply = OrderReserverReply.builder()
@@ -68,7 +68,7 @@ public class InventorySagaConsumer {
                     .build();
             rabbitTemplate.convertAndSend(
                     rabbitMQProperties.getExchanges().getOrder(),
-                    rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                    rabbitMQProperties.getRoutingKeys().getInventoryReserveReply(),
                     reply
             );
         }
@@ -89,7 +89,7 @@ public class InventorySagaConsumer {
                         .build();
                 rabbitTemplate.convertAndSend(
                         rabbitMQProperties.getExchanges().getOrder(),
-                        rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                        rabbitMQProperties.getRoutingKeys().getInventoryErrorReply(),
                         reply
                 );
                 checkErr = 1;
@@ -102,7 +102,7 @@ public class InventorySagaConsumer {
                     .build();
             rabbitTemplate.convertAndSend(
                     rabbitMQProperties.getExchanges().getOrder(),
-                    rabbitMQProperties.getRoutingKeys().getOrderReply(),
+                    rabbitMQProperties.getRoutingKeys().getInventoryRollbackReply(),
                     reply
             );
         }

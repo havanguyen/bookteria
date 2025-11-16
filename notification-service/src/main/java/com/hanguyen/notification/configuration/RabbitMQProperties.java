@@ -3,7 +3,6 @@ package com.hanguyen.notification.configuration;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-
 @ConfigurationProperties(prefix = "spring.rabbitmq")
 @Data
 public class RabbitMQProperties {
@@ -13,6 +12,10 @@ public class RabbitMQProperties {
 
     @Data
     public static class Exchanges {
+        private String order;
+        private String cart;
+        private String inventory;
+        private String payment;
         private String notification;
     }
 
@@ -26,4 +29,3 @@ public class RabbitMQProperties {
         private String notificationOrderCompleted;
     }
 }
-

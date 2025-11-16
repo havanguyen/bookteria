@@ -4,7 +4,6 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-
 @ConfigurationProperties(prefix = "spring.rabbitmq")
 @Data
 public class RabbitMQProperties {
@@ -14,7 +13,11 @@ public class RabbitMQProperties {
 
     @Data
     public static class Exchanges {
+        private String order;
         private String cart;
+        private String inventory;
+        private String payment;
+        private String notification;
     }
 
     @Data
@@ -27,4 +30,3 @@ public class RabbitMQProperties {
         private String cartSync;
     }
 }
-

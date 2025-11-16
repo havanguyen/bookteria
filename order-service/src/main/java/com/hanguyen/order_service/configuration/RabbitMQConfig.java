@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     final RabbitMQProperties rabbitMQProperties;
-    public static final long TTL = 900000L;
 
     @Bean
     public DirectExchange orderExchange() {
@@ -23,18 +22,42 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue orderQueue() {
-        return new Queue(rabbitMQProperties.getQueues().getOrder());
+    public Queue inventoryReserveReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getInventoryReserveReply());
     }
 
     @Bean
-    public Queue orderReplyQueue() {
-        return new Queue(rabbitMQProperties.getQueues().getOrderReply());
+    public Queue inventoryOotReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getInventoryOotReply());
     }
 
+    @Bean
+    public Queue inventoryErrorReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getInventoryErrorReply());
+    }
 
     @Bean
-    public Queue orderDelayQueue(){
+    public Queue inventoryRollbackReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getInventoryRollbackReply());
+    }
+
+    @Bean
+    public Queue paymentInitReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getPaymentInitReply());
+    }
+
+    @Bean
+    public Queue paymentSuccessReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getPaymentSuccessReply());
+    }
+
+    @Bean
+    public Queue paymentFailedReplyQueue() {
+        return new Queue(rabbitMQProperties.getQueues().getPaymentFailedReply());
+    }
+
+    @Bean
+    public Queue orderDelayQueue() {
         return QueueBuilder.durable(rabbitMQProperties.getQueues().getOrderDelay())
                 .withArgument("x-message-ttl", 15 * 60 * 1000)
                 .withArgument("x-dead-letter-exchange", rabbitMQProperties.getExchanges().getOrder())
@@ -42,38 +65,71 @@ public class RabbitMQConfig {
                 .build();
     }
 
-
     @Bean
     public Queue orderTimeoutQueue() {
-
         return QueueBuilder.durable(rabbitMQProperties.getQueues().getOrderTimeout()).build();
     }
 
     @Bean
-    public Binding orderBinding(DirectExchange directExchange, Queue orderQueue) {
-        return BindingBuilder.bind(orderQueue)
-                .to(directExchange)
-                .with(rabbitMQProperties.getRoutingKeys().getOrder());
+    public Binding inventoryReserveReplyBinding(DirectExchange orderExchange, Queue inventoryReserveReplyQueue) {
+        return BindingBuilder.bind(inventoryReserveReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getInventoryReserveReply());
     }
 
     @Bean
-    public Binding orderReplyBinding(DirectExchange directExchange, Queue orderReplyQueue) {
-        return BindingBuilder.bind(orderReplyQueue)
-                .to(directExchange)
-                .with(rabbitMQProperties.getRoutingKeys().getOrderReply());
+    public Binding inventoryOotReplyBinding(DirectExchange orderExchange, Queue inventoryOotReplyQueue) {
+        return BindingBuilder.bind(inventoryOotReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getInventoryOotReply());
     }
 
     @Bean
-    public Binding orderTimeoutBinding(DirectExchange directExchange, Queue orderTimeoutQueue) {
+    public Binding inventoryErrorReplyBinding(DirectExchange orderExchange, Queue inventoryErrorReplyQueue) {
+        return BindingBuilder.bind(inventoryErrorReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getInventoryErrorReply());
+    }
+
+    @Bean
+    public Binding inventoryRollbackReplyBinding(DirectExchange orderExchange, Queue inventoryRollbackReplyQueue) {
+        return BindingBuilder.bind(inventoryRollbackReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getInventoryRollbackReply());
+    }
+
+    @Bean
+    public Binding paymentInitReplyBinding(DirectExchange orderExchange, Queue paymentInitReplyQueue) {
+        return BindingBuilder.bind(paymentInitReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getPaymentInitReply());
+    }
+
+    @Bean
+    public Binding paymentSuccessReplyBinding(DirectExchange orderExchange, Queue paymentSuccessReplyQueue) {
+        return BindingBuilder.bind(paymentSuccessReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getPaymentSuccessReply());
+    }
+
+    @Bean
+    public Binding paymentFailedReplyBinding(DirectExchange orderExchange, Queue paymentFailedReplyQueue) {
+        return BindingBuilder.bind(paymentFailedReplyQueue)
+                .to(orderExchange)
+                .with(rabbitMQProperties.getRoutingKeys().getPaymentFailedReply());
+    }
+
+    @Bean
+    public Binding orderTimeoutBinding(DirectExchange orderExchange, Queue orderTimeoutQueue) {
         return BindingBuilder.bind(orderTimeoutQueue)
-                .to(directExchange)
+                .to(orderExchange)
                 .with(rabbitMQProperties.getRoutingKeys().getOrderTimeout());
     }
 
     @Bean
-    public Binding orderDelayBinding(DirectExchange directExchange, Queue orderDelayQueue) {
+    public Binding orderDelayBinding(DirectExchange orderExchange, Queue orderDelayQueue) {
         return BindingBuilder.bind(orderDelayQueue)
-                .to(directExchange)
+                .to(orderExchange)
                 .with(rabbitMQProperties.getRoutingKeys().getOrderDelay());
     }
 

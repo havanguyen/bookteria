@@ -41,6 +41,7 @@ public class RabbitMQConfig {
         rabbitTemplate.setMessageConverter(messageConverter);
         return rabbitTemplate;
     }
+
     @Bean
     public Declarables createCartDeclarable() {
         return new Declarables(

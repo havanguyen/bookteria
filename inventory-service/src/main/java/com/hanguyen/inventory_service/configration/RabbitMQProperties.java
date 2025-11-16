@@ -12,9 +12,11 @@ public class RabbitMQProperties {
 
     @Data
     public static class Exchanges {
-        private String inventory;
-
         private String order;
+        private String cart;
+        private String inventory;
+        private String payment;
+        private String notification;
     }
 
     @Data
@@ -22,8 +24,6 @@ public class RabbitMQProperties {
         private String inventoryReserve;
         private String inventoryRollback;
         private String inventorySync;
-
-        private String orderReply;
     }
 
     @Data
@@ -32,7 +32,9 @@ public class RabbitMQProperties {
         private String inventoryRollback;
         private String inventorySync;
 
-        private String orderReply;
+        private String inventoryReserveReply;
+        private String inventoryOotReply;
+        private String inventoryErrorReply;
+        private String inventoryRollbackReply;
     }
 }
-
