@@ -34,6 +34,31 @@ services:
       - bookteria-net
 
 
+  elasticsearch:
+    image: elasticsearch:8.11.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    networks:
+      - bookteria-net
+
+
+  elastichq:
+    image: elastichq/elasticsearch-hq
+    container_name: elastichq
+    ports:
+      - "5000:5000"
+    networks:
+      - bookteria-net
+
+
+
   discovery-server:
     image: ${DOCKER_USERNAME}/discovery-server:latest
     container_name: discovery-server
@@ -177,6 +202,7 @@ services:
 
 volumes:
   rabbitmq_data:
+  elastic_data:
 
 networks:
   bookteria-net:

@@ -55,7 +55,6 @@ spring:
     name: search-service
   elasticsearch:
     uris: ${SEARCH_SERVICE_ELASTIC_URIS}
-    api-key: ${SEARCH_SERVICE_ELASTIC_API_KEY}
   kafka:
     consumer:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
