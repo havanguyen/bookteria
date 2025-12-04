@@ -48,17 +48,6 @@ services:
     networks:
       - bookteria-net
 
-
-  elastichq:
-    image: elastichq/elasticsearch-hq
-    container_name: elastichq
-    ports:
-      - "5000:5000"
-    networks:
-      - bookteria-net
-
-
-
   discovery-server:
     image: ${DOCKER_USERNAME}/discovery-server:latest
     container_name: discovery-server

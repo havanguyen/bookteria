@@ -1,4 +1,4 @@
-package com.hanguyen.notification.exception;
+package com.hanguyen.search_service.exception;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(indexName = "products") // tuong duong voi entity
+@Document(indexName = "products")
 public class ProductDocument {
     @Id
     private String id;
@@ -37,7 +37,4 @@ public class ProductDocument {
 
     @Field(type = FieldType.Text)
     private String publisherName;
-
-    @Field(type = FieldType.Keyword)
-    private List<String> categoryNames;
 }

@@ -1,5 +1,8 @@
 package com.hanguyen.search_service.dto.reponse;
 
+import com.hanguyen.search_service.dto.reponse.AuthorResponse;
+import com.hanguyen.search_service.dto.reponse.CategoryResponse;
+import com.hanguyen.search_service.dto.reponse.PublisherResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

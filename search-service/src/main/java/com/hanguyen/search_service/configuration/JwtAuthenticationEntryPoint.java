@@ -1,17 +1,15 @@
-package com.hanguyen.notification.configuration;
+package com.hanguyen.search_service.configuration;
 
-import java.io.IOException;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hanguyen.search_service.dto.reponse.ApiResponse;
+import com.hanguyen.search_service.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hanguyen.notification.dto.ApiResponse;
-import com.hanguyen.notification.exception.ErrorCode;
+import java.io.IOException;
 
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override

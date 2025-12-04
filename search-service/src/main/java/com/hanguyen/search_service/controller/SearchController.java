@@ -1,6 +1,8 @@
 package com.hanguyen.search_service.controller;
 
 import com.hanguyen.search_service.document.ProductDocument;
+import com.hanguyen.search_service.dto.reponse.ApiResponse;
+import com.hanguyen.search_service.service.SyncService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,11 +15,9 @@ import org.springframework.data.elasticsearch.core.SearchHitSupport;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.SearchPage;
 import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/search")
@@ -27,6 +27,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class SearchController {
 
     ElasticsearchOperations elasticsearchOperations;
+    SyncService syncService;
+
+    @PostMapping("/sync")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<String> syncAllData() {
+        new Thread(syncService::syncAllProducts).start();
+
+        return ApiResponse.<String>builder()
+                .result("Sync process started in background")
+                .build();
+    }
 
     @GetMapping("/product")
     public Page<ProductDocument> searchProducts(
