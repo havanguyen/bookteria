@@ -1,5 +1,7 @@
 package com.hanguyen.notification.service;
 
+import com.hanguyen.notification.entity.NotificationLog;
+import com.hanguyen.notification.repository.NotificationLogRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +20,16 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class EmailService {
     SentEmailClient sentEmailClient;
+
+    NotificationLogRepository notificationLogRepository;
 
     @NonFinal
     @Value("${brevo.mcp.name-sender}")
@@ -47,6 +53,25 @@ public class EmailService {
         } catch (FeignException e) {
             log.error("FeignException when calling Brevo. Status: {}. Body: {}", e.status(), e.contentUTF8(), e);
             throw new AppException(ErrorCode.CANT_NOT_SENT_EMAIL);
+        }
+        finally {
+            saveLog(request);
+        }
+    }
+
+    private void saveLog(SentEmailRequest request) {
+        try {
+            NotificationLog log = NotificationLog.builder()
+                    .recipientEmail(request.getRecipients().getFirst().getEmail())
+                    .subject(request.getSubject())
+                    .bodyPreview(request.getHtmlContent() != null && request.getHtmlContent().length() > 100
+                            ? request.getHtmlContent().substring(0, 100) + "..."
+                            : request.getHtmlContent())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            notificationLogRepository.save(log);
+        } catch (Exception e) {
+            System.err.println("Failed to save notification log: " + e.getMessage());
         }
     }
 }

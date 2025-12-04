@@ -69,6 +69,10 @@ spring:
     username: ${ORDER_SERVICE_DB_USER}
     password: ${ORDER_SERVICE_DB_PASS}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      max-lifetime: 600000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
   jpa:
     hibernate:
       ddl-auto: update

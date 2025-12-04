@@ -69,18 +69,34 @@ spring:
             - Path=${app.api-prefix}/identity/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                  redis-rate-limiter.replenishRate: 10
+                  redis-rate-limiter.burstCapacity: 20
+                  redis-rate-limiter.requestedTokens: 1
+                  key-resolver: "#{@ipKeyResolver}"
         - id: profile_service
           uri: lb://profile-service
           predicates:
             - Path=${app.api-prefix}/profile/users/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                  redis-rate-limiter.replenishRate: 50
+                  redis-rate-limiter.burstCapacity: 100
+                  key-resolver: "#{@ipKeyResolver}"
         - id: notification_service
           uri: lb://notification-service
           predicates:
             - Path=${app.api-prefix}/notification/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: file_service
           uri: lb://file-service
@@ -88,6 +104,11 @@ spring:
             - Path=${app.api-prefix}/file/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: product-service-products
           uri: lb://product-service
@@ -95,6 +116,11 @@ spring:
             - Path=/api/v1/products/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: product-service-authors
           uri: lb://product-service
@@ -102,6 +128,11 @@ spring:
             - Path=/api/v1/authors/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: product-service-categories
           uri: lb://product-service
@@ -109,6 +140,11 @@ spring:
             - Path=/api/v1/categories/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: product-service-publishers
           uri: lb://product-service
@@ -116,6 +152,11 @@ spring:
             - Path=/api/v1/publishers/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: search-service
           uri: lb://search-service
@@ -123,6 +164,11 @@ spring:
             - Path=/api/v1/search/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: inventory-service
           uri: lb://inventory-service
@@ -130,6 +176,11 @@ spring:
             - Path=/api/v1/inventory/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: cart-service
           uri: lb://cart-service
@@ -137,6 +188,11 @@ spring:
             - Path=/api/v1/my-cart/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: order-service
           uri: lb://order-service
@@ -144,6 +200,11 @@ spring:
             - Path=/api/v1/orders/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
         - id: payment-service
           uri: lb://payment-service
@@ -151,6 +212,11 @@ spring:
             - Path=/api/v1/payment/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@ipKeyResolver}"
 
 
 #management:
