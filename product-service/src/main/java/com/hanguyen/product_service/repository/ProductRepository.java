@@ -17,7 +17,12 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p")
     Page<Product> findAllWithRelations(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"author", "publisher", "categories"})
     List<Product> findAllByAuthorId(String authorId);
+
+    @EntityGraph(attributePaths = {"author", "publisher", "categories"})
     List<Product> findAllByPublisherId(String publisherId);
+
+    @EntityGraph(attributePaths = {"author", "publisher", "categories"})
     List<Product> findAllByCategories_Id(String categoryId);
 }

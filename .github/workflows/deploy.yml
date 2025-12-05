@@ -8,7 +8,7 @@ jobs:
   build_and_push :
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Nếu 1 service build lỗi, vẫn build 11 service còn lại
+      fail-fast: false
       matrix:
         service:
           - api-gateway
@@ -26,10 +26,10 @@ jobs:
     steps:
       - name: 1. Checkout Code
         uses: actions/checkout@v4
-      - name: 2. Set up QEMU # hỗ trợ build đa kiến trúc (arm64, amd64, v.v.)
+      - name: 2. Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: 3. Set up Docker Buildx # build hiệu năng cao, có hỗ trợ cache layer, multi-stage, parallel build.
+      - name: 3. Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 4. Login to Docker Hub
