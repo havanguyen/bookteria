@@ -15,7 +15,7 @@
 - **Frontend Application**: [bookteria.click](https://bookteria.click)
 - **API Gateway**: [api.bookteria.click](https://api.bookteria.click)
 - **Project Wiki & Documentation**: [deepwiki.com/havanguyen/bookteria](https://deepwiki.com/havanguyen/bookteria)
-- - **Monitor by dozzle **: [dozzle]((http://44.228.171.35:8888/))
+- - **Monitor by dozzle**: [dozzle](http://44.228.171.35:8888)
 
 ## 🏗 Architecture
 
