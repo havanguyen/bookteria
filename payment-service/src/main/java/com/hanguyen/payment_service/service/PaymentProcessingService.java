@@ -127,7 +127,7 @@ public class PaymentProcessingService {
             }
         });
 
-        String frontendUrl = "https://bookteria.xyz/payment/result";
+        String frontendUrl = "https://bookteria.click/payment/result";
 
         boolean isValidSignature = vnPayService.validateSignature(rawParamsMap);
         if (!isValidSignature) {
