@@ -5,12 +5,18 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.hanguyen.identity.constant.PredefinedRole;
 import com.hanguyen.identity.dto.event.UserEvent;
 import com.hanguyen.identity.dto.request.*;
 import com.hanguyen.identity.dto.response.*;
+import com.hanguyen.identity.entity.Permission;
+import com.hanguyen.identity.entity.Role;
+import com.hanguyen.identity.repository.RoleRepository;
 import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
 import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
 import com.hanguyen.identity.utils.PasswordGenerator;
@@ -50,6 +56,8 @@ public class AuthenticationService {
     OutboundUserClient outboundUserClient;
     UserEventProducerService userEventProducerService;
     UserService userService;
+
+    RoleRepository roleRepository;
 
 
     @NonFinal
@@ -93,42 +101,67 @@ public class AuthenticationService {
     }
 
     public AuthenticationResponse outboundAuthenticate(String code){
-        ExchangeTokenResponse response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
-                .code(code)
-                .clientId(CLIENT_ID)
-                .clientSecret(CLIENT_SECRET)
-                .redirectUri(REDIRECT_URI)
-                .grantType(GRANT_TYPE)
-                .build());
-
-        log.info("TOKEN RESPONSE {}", response);
-        OutboundUserResponse userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
-
-        log.info("User Info {}", userInfo);
-
-        var user = userRepository.findByUsername(userInfo.getEmail());
-
-        if (user.isEmpty()){
-            String passwordRandom = PasswordGenerator.generateStrongPassword(10);
-            UserResponse userResponse =  userService.createUser(UserCreationRequest.builder()
-                            .username(userInfo.getEmail())
-                            .email(userInfo.getEmail())
-                            .firstName(userInfo.getName())
-                            .lastName(userInfo.getGivenName())
-                            .password(passwordRandom)
-                            .dob(LocalDate.now())
+        try {
+            ExchangeTokenResponse response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
+                    .code(code)
+                    .clientId(CLIENT_ID)
+                    .clientSecret(CLIENT_SECRET)
+                    .redirectUri(REDIRECT_URI)
+                    .grantType(GRANT_TYPE)
                     .build());
-             userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
-                             .userId(userResponse.getId())
-                             .username(userResponse.getUsername())
-                             .email(userResponse.getProfileResponse().getEmail())
-                             .firstName(userResponse.getProfileResponse().getFirstName())
-                             .password(passwordRandom).build());
-        }
 
-        return AuthenticationResponse.builder()
-                .token(response.getAccessToken())
-                .build();
+            log.info("TOKEN RESPONSE {}", response);
+            OutboundUserResponse userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+
+            log.info("User Info {}", userInfo);
+
+            var user = userRepository.findByUsername(userInfo.getEmail());
+
+            TokenInfo tokenInfo;
+
+            if (user.isEmpty()) {
+                String passwordRandom = PasswordGenerator.generateStrongPassword(10);
+                UserResponse userResponse = userService.createUser(UserCreationRequest.builder()
+                        .username(userInfo.getEmail())
+                        .email(userInfo.getEmail())
+                        .firstName(userInfo.getName())
+                        .lastName(userInfo.getGivenName())
+                        .password(passwordRandom)
+                        .dob(LocalDate.now())
+                        .build());
+                userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
+                        .userId(userResponse.getId())
+                        .username(userResponse.getUsername())
+                        .email(userResponse.getProfileResponse().getEmail())
+                        .firstName(userResponse.getProfileResponse().getFirstName())
+                        .password(passwordRandom).build());
+
+                tokenInfo = generateToken(User.builder().username(userResponse.getUsername())
+                        .roles(userResponse.getRoles().stream().map(roleResponse -> Role.builder()
+                                .name(roleResponse.getName())
+                                .permissions(roleResponse.getPermissions().stream().map(permissionResponse -> Permission.builder()
+                                        .name(permissionResponse.getName())
+                                        .description(permissionResponse.getDescription())
+                                        .build()).collect(Collectors.toSet()))
+                                .description(roleResponse.getDescription())
+                                .build()).collect(Collectors.toSet()))
+                        .id(userResponse.getId()).build());
+            } else {
+                tokenInfo = generateToken(User.builder()
+                        .id(user.get().getId())
+                        .username(user.get().getId())
+                        .roles(user.get().getRoles())
+                        .build());
+            }
+
+            return AuthenticationResponse.builder()
+                    .token(tokenInfo.token)
+                    .expiryTime(tokenInfo.expiryDate)
+                    .build();
+        }
+        catch (Exception e){
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
     }
 
 
