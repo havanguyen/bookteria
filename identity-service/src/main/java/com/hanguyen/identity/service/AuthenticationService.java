@@ -120,33 +120,46 @@ public class AuthenticationService {
             TokenInfo tokenInfo;
 
             if (user.isEmpty()) {
+                log.info("User not found, creating new user for email: {}", userInfo.getEmail());
                 String passwordRandom = PasswordGenerator.generateStrongPassword(10);
-                UserResponse userResponse = userService.createUser(UserCreationRequest.builder()
-                        .username(userInfo.getEmail())
-                        .email(userInfo.getEmail())
-                        .firstName(userInfo.getName())
-                        .lastName(userInfo.getGivenName())
-                        .password(passwordRandom)
-                        .dob(LocalDate.now())
-                        .build());
-                userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
-                        .userId(userResponse.getId())
-                        .username(userResponse.getUsername())
-                        .email(userResponse.getProfileResponse().getEmail())
-                        .firstName(userResponse.getProfileResponse().getFirstName())
-                        .password(passwordRandom).build());
+                
+                try {
+                    UserResponse userResponse = userService.createUser(UserCreationRequest.builder()
+                            .username(userInfo.getEmail())
+                            .email(userInfo.getEmail())
+                            .firstName(userInfo.getName())
+                            .lastName(userInfo.getGivenName())
+                            .password(passwordRandom)
+                            .dob(LocalDate.of(2000, 1, 1)) // Fix: Use valid default DOB
+                            .build());
+                    
+                    log.info("User created successfully with ID: {}", userResponse.getId());
 
-                tokenInfo = generateToken(User.builder().username(userResponse.getUsername())
-                        .roles(userResponse.getRoles().stream().map(roleResponse -> Role.builder()
-                                .name(roleResponse.getName())
-                                .permissions(roleResponse.getPermissions().stream().map(permissionResponse -> Permission.builder()
-                                        .name(permissionResponse.getName())
-                                        .description(permissionResponse.getDescription())
-                                        .build()).collect(Collectors.toSet()))
-                                .description(roleResponse.getDescription())
-                                .build()).collect(Collectors.toSet()))
-                        .id(userResponse.getId()).build());
+                    userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
+                            .userId(userResponse.getId())
+                            .username(userResponse.getUsername())
+                            .email(userResponse.getProfileResponse().getEmail())
+                            .firstName(userResponse.getProfileResponse().getFirstName())
+                            .password(passwordRandom).build());
+
+                    tokenInfo = generateToken(User.builder().username(userResponse.getUsername())
+                            .roles(userResponse.getRoles().stream().map(roleResponse -> Role.builder()
+                                    .name(roleResponse.getName())
+                                    .permissions(roleResponse.getPermissions().stream().map(permissionResponse -> Permission.builder()
+                                            .name(permissionResponse.getName())
+                                            .description(permissionResponse.getDescription())
+                                            .build()).collect(Collectors.toSet()))
+                                    .description(roleResponse.getDescription())
+                                    .build()).collect(Collectors.toSet()))
+                            .id(userResponse.getId()).build());
+                            
+                    log.info("Token generated successfully for new user");
+                } catch (Exception e) {
+                    log.error("Error creating user or generating token for {}: {}", userInfo.getEmail(), e.getMessage(), e);
+                    throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+                }
             } else {
+                log.info("User found, generating token for existing user: {}", user.get().getUsername());
                 tokenInfo = generateToken(User.builder()
                         .id(user.get().getId())
                         .username(user.get().getId())
@@ -160,6 +173,7 @@ public class AuthenticationService {
                     .build();
         }
         catch (Exception e){
+            log.info("Error has message {}" , e.getMessage());
             throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
     }

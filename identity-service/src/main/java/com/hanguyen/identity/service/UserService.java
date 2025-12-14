@@ -66,47 +66,55 @@ public class UserService {
     int maxTTL = 1800;
 
     public UserResponse createUser(UserCreationRequest request) {
-        if (userRepository.existsByUsernameAndIsActiveTrue(request.getUsername()))
-            throw new AppException(ErrorCode.USER_EXISTED);
+        try {
+            if (userRepository.existsByUsernameAndIsActiveTrue(request.getUsername()))
+                throw new AppException(ErrorCode.USER_EXISTED);
 
-        User user = userMapper.toUser(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+            User user = userMapper.toUser(request);
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        HashSet<Role> roles = new HashSet<>();
-        roleRepository.findById(PredefinedRole.USER_ROLE).ifPresent(roles::add);
+            HashSet<Role> roles = new HashSet<>();
+            roleRepository.findById(PredefinedRole.USER_ROLE).ifPresent(roles::add);
 
-        user.setRoles(roles);
+            user.setRoles(roles);
 
-        user = userRepository.save(user);
+            user = userRepository.save(user);
 
-        ProfileCreationRequest profileRequest = userMapper.toProfileCreationRequest(request);
+            ProfileCreationRequest profileRequest = userMapper.toProfileCreationRequest(request);
 
-        profileRequest.setUserId(user.getId());
+            profileRequest.setUserId(user.getId());
 
-        UserProfileResponse profileResponse = profileClient.createProfile(profileRequest);
+            UserProfileResponse profileResponse = profileClient.createProfile(profileRequest);
 
-        if (profileResponse != null && profileResponse.getEmail() != null) {
-            try {
-                UserEvent event = UserEvent.builder()
-                        .userId(user.getId())
-                        .username(user.getUsername())
-                        .firstName(profileResponse.getFirstName())
-                        .email(profileResponse.getEmail())
-                        .typeEvent(TypeEvent.CREATE.getEvent())
-                        .build();
-                userEventProducerService.sendUserCreationEvent(event);
-            } catch (Exception e) {
+            if (profileResponse != null && profileResponse.getEmail() != null) {
+                try {
+                    UserEvent event = UserEvent.builder()
+                            .userId(user.getId())
+                            .username(user.getUsername())
+                            .firstName(profileResponse.getFirstName())
+                            .email(profileResponse.getEmail())
+                            .typeEvent(TypeEvent.CREATE.getEvent())
+                            .build();
+                    userEventProducerService.sendUserCreationEvent(event);
+                } catch (Exception e) {
+                    throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+                }
+            } else {
                 throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
             }
-        } else {
+
+            UserResponse userResponse = userMapper.toUserResponse(user);
+            userResponse.setProfileResponse(profileResponse);
+
+            clearUserListCaches();
+
+            log.info("Create user with id {} successfully " , userResponse.getId());
+            return userResponse;
+        }
+        catch (Exception e){
+            log.info("Error has message {}" , e.getMessage());
             throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
-
-        UserResponse userResponse = userMapper.toUserResponse(user);
-        userResponse.setProfileResponse(profileResponse);
-
-        clearUserListCaches();
-        return userResponse;
     }
 
     public UserResponse getMyInfo() {
