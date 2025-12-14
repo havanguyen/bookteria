@@ -1,11 +1,17 @@
 package com.hanguyen.product_service.configuration;
 
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -25,12 +31,30 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated());
 
-        httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
+        httpSecurity.oauth2ResourceServer(oauth2 -> {
+            oauth2.jwt(jwtConfigurer -> {
+                jwtConfigurer.decoder(jwtDecoder());
+                jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter());
+            });
+            oauth2.authenticationEntryPoint(new JwtAuthenticationEntryPoint());
+        });
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
         return httpSecurity.build();
+    }
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    private String jwkSetUri;
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+                .jwtProcessorCustomizer(processor -> {
+                    processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(
+                            new JOSEObjectType("at+jwt"),
+                            new JOSEObjectType("JWT")));
+                })
+                .build();
     }
 
     @Bean

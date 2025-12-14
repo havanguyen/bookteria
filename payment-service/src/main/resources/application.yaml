@@ -94,7 +94,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
+          jwk-set-uri: ${IDENTITY_SERVICE_JWK_URI}
 
 vnpay:
   tmnCode: ${PAYMENT_SERVICE_VNPAY_TMN_CODE}

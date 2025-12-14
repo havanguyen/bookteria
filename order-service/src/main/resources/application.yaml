@@ -57,6 +57,8 @@ logging:
   level:
     org.springframework.amqp: DEBUG
     com.hanguyen.cart_service.service.CartService: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
 
 server:
   port: 8088
@@ -98,4 +100,4 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
+          jwk-set-uri: ${IDENTITY_SERVICE_JWK_URI}

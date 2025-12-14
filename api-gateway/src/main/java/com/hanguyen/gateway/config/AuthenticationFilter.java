@@ -1,7 +1,6 @@
 package com.hanguyen.gateway.config;
 
 import com.hanguyen.gateway.dto.request.ApiResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
@@ -67,38 +66,56 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String path = exchange.getRequest().getURI().getPath();
+        log.info("Incoming request path: {}", path);
 
         if (isPublicEndpoint(exchange.getRequest())) {
+            log.info("Request match public endpoint. Bypass auth.");
             return chain.filter(exchange);
         }
         String token = null;
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
 
         if (!CollectionUtils.isEmpty(authHeader)) {
-            token = authHeader.getFirst().replace("Bearer ", "").trim();
+            String headerValue = authHeader.getFirst();
+            log.info("Found Authorization header: {}", headerValue);
+            if (headerValue.toLowerCase().startsWith("bearer ")) {
+                token = headerValue.substring(7).trim();
+            } else {
+                token = headerValue.trim();
+            }
         } else {
             var cookies = exchange.getRequest().getCookies();
             if (cookies.containsKey("ACCESS_TOKEN")) {
                 token = Objects.requireNonNull(cookies.getFirst("ACCESS_TOKEN")).getValue();
+                log.info("Found ACCESS_TOKEN cookie. Value length: {}", token.length());
+            } else {
+                log.warn("No Authorization header or ACCESS_TOKEN cookie found");
             }
         }
 
         if (token == null) {
+            log.warn("Token is null. Return 401");
             return unauthenticated(exchange.getResponse());
         }
 
-        log.info("Token: {}", token);
+        log.info("Checking Redis for token: {}", token);
 
         return redisTemplate.opsForValue().get(token)
                 .flatMap(jwt -> {
+                    log.info("Token found in Redis. Forwarding request with JWT.");
                     ServerWebExchange mutatedExchange = exchange.mutate()
                             .request(exchange.getRequest().mutate()
                                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                                     .build())
                             .build();
-                    return chain.filter(mutatedExchange);
+                    return chain.filter(mutatedExchange).then(Mono.just(true));
                 })
-                .switchIfEmpty(Mono.defer(() -> unauthenticated(exchange.getResponse())));
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Token not found in Redis (expired or invalid). Return 401");
+                    return unauthenticated(exchange.getResponse()).then(Mono.just(false));
+                }))
+                .then();
     }
 
     @Override
@@ -119,15 +136,13 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(apiResponse))
                 .flatMap(body -> {
                     httpResponse.setStatusCode(HttpStatus.UNAUTHORIZED);
-                    try {
+                    if (!httpResponse.isCommitted()) {
                         httpResponse.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-                    } catch (UnsupportedOperationException e) {
-                        log.warn("Failed to set Content-Type header: {}", e.getMessage());
                     }
                     DataBuffer buffer = httpResponse.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
                     return httpResponse.writeWith(Mono.just(buffer));
                 })
-                .onErrorResume(JsonProcessingException.class, exception -> {
+                .onErrorResume(Exception.class, exception -> {
                     log.error("Error writing unauthenticated response", exception);
                     httpResponse.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                     return httpResponse.setComplete();
