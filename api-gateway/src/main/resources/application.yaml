@@ -49,6 +49,8 @@ logging:
   level:
     org.springframework.amqp: DEBUG
     com.hanguyen.cart_service.service.CartService: DEBUG
+    org.springframework.data.redis: DEBUG
+    io.lettuce.core: TRACE
 
 server:
   port: 9000
@@ -223,18 +225,3 @@ spring:
                 redis-rate-limiter.replenishRate: 50
                 redis-rate-limiter.burstCapacity: 100
                 key-resolver: "#{@ipKeyResolver}"
-
-
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: health, info, prometheus
-#
-#  tracing:
-#    sampling:
-#      probability: 1.0
-#
-#  zipkin:
-#    tracing:
-#      endpoint: "http://localhost:9411/api/v2/spans"

@@ -1,9 +1,9 @@
 package com.hanguyen.gateway.config;
 
 import com.hanguyen.gateway.dto.request.ApiResponse;
-import com.hanguyen.gateway.service.IdentityService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,6 +14,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,7 +36,7 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
-    org.springframework.data.redis.core.ReactiveStringRedisTemplate redisTemplate;
+    ReactiveStringRedisTemplate redisTemplate;
     ObjectMapper objectMapper;
 
     @NonFinal
@@ -55,6 +56,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     @NonFinal
     String apiPrefix;
 
+    @Value("${spring.data.redis.host}")
+    @NonFinal
+    String redisHost;
+
+    @PostConstruct
+    public void init() {
+        log.info("AuthenticationFilter initialized. Connected to Redis Host: {}", redisHost);
+    }
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
@@ -65,7 +75,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
 
         if (!CollectionUtils.isEmpty(authHeader)) {
-            token = authHeader.getFirst().replace("Bearer ", "");
+            token = authHeader.getFirst().replace("Bearer ", "").trim();
         } else {
             var cookies = exchange.getRequest().getCookies();
             if (cookies.containsKey("ACCESS_TOKEN")) {
