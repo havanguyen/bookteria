@@ -1,6 +1,5 @@
 package com.hanguyen.notification.dto.event;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

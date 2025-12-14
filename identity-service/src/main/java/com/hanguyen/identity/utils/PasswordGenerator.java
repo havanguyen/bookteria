@@ -1,4 +1,5 @@
 package com.hanguyen.identity.utils;
+
 import java.security.SecureRandom;
 
 public class PasswordGenerator {
@@ -8,8 +9,7 @@ public class PasswordGenerator {
     private static final String DIGITS = "0123456789";
     private static final String SPECIAL = "!@#$%^&*()-_=+[]{}<>?";
 
-    private static final String ALL_CHARS =
-            LOWERCASE + UPPERCASE + DIGITS + SPECIAL;
+    private static final String ALL_CHARS = LOWERCASE + UPPERCASE + DIGITS + SPECIAL;
 
     private static final SecureRandom random = new SecureRandom();
 

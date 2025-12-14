@@ -37,7 +37,7 @@ public class UserEventProducerService {
     public void sendUserCreationOAuth2Event(UserEvent event) {
         try {
             log.info("Sending user creation OAuth2 event to Kafka: {}", event);
-            kafkaTemplate.send(TOPIC_USER_CREATE_OAUTH2,  event.getUserId(), event);
+            kafkaTemplate.send(TOPIC_USER_CREATE_OAUTH2, event.getUserId(), event);
             log.info("Successfully OAuth2 event for user ID: {}", event.getUserId());
         } catch (Exception e) {
             log.error(

@@ -7,8 +7,7 @@ public enum TypeEvent {
     CREATE("Create"),
     UPDATE("Update"),
     DELETE("Delete"),
-    OAUTH2("OAuth2")
-    ;
+    OAUTH2("OAuth2");
 
     TypeEvent(String event) {
         this.event = event;

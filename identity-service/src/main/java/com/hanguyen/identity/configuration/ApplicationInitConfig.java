@@ -1,5 +1,3 @@
-
-
 package com.hanguyen.identity.configuration;
 
 import java.util.HashSet;

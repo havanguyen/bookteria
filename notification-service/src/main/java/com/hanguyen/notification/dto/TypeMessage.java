@@ -17,12 +17,11 @@ public enum TypeMessage {
     OrderCompletedEvent("Order has been successfully completed."),
     PaymentFailedEvent("Payment failed during processing."),
     PaymentSucceededEvent("Payment was successfully processed."),
-    PaymentInitiatedReply("Payment initiate reply")
-    ;
+    PaymentInitiatedReply("Payment initiate reply");
 
     TypeMessage(String event) {
         this.message = event;
     }
+
     private final String message;
 }
-

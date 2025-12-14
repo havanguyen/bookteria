@@ -28,9 +28,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/outbound/authentication")
-    ApiResponse<AuthenticationResponse> outboundAuthenticate(
-            @RequestParam("code") String code
-    ){
+    ApiResponse<AuthenticationResponse> outboundAuthenticate(@RequestParam("code") String code) {
         AuthenticationResponse result = authenticationService.outboundAuthenticate(code);
         return ApiResponse.<AuthenticationResponse>builder().result(result).build();
     }

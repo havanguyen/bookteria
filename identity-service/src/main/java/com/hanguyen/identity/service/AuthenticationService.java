@@ -5,33 +5,31 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.hanguyen.identity.constant.PredefinedRole;
-import com.hanguyen.identity.dto.event.UserEvent;
-import com.hanguyen.identity.dto.request.*;
-import com.hanguyen.identity.dto.response.*;
-import com.hanguyen.identity.entity.Permission;
-import com.hanguyen.identity.entity.Role;
-import com.hanguyen.identity.repository.RoleRepository;
-import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
-import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
-import com.hanguyen.identity.utils.PasswordGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import com.hanguyen.identity.dto.event.UserEvent;
+import com.hanguyen.identity.dto.request.*;
+import com.hanguyen.identity.dto.response.*;
 import com.hanguyen.identity.entity.InvalidatedToken;
+import com.hanguyen.identity.entity.Permission;
+import com.hanguyen.identity.entity.Role;
 import com.hanguyen.identity.entity.User;
 import com.hanguyen.identity.exception.AppException;
 import com.hanguyen.identity.exception.ErrorCode;
 import com.hanguyen.identity.repository.InvalidatedTokenRepository;
+import com.hanguyen.identity.repository.RoleRepository;
 import com.hanguyen.identity.repository.UserRepository;
+import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
+import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
+import com.hanguyen.identity.utils.PasswordGenerator;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -58,7 +56,6 @@ public class AuthenticationService {
     UserService userService;
 
     RoleRepository roleRepository;
-
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -100,7 +97,7 @@ public class AuthenticationService {
         return IntrospectResponse.builder().valid(isValid).build();
     }
 
-    public AuthenticationResponse outboundAuthenticate(String code){
+    public AuthenticationResponse outboundAuthenticate(String code) {
         try {
             ExchangeTokenResponse response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
                     .code(code)
@@ -121,8 +118,8 @@ public class AuthenticationService {
 
             if (user.isEmpty()) {
                 log.info("User not found, creating new user for email: {}", userInfo.getEmail());
-                String passwordRandom = PasswordGenerator.generateStrongPassword(10);
-                
+                String passwordRandom = PasswordGenerator.generateStrongPassword(12);
+
                 try {
                     UserResponse userResponse = userService.createUser(UserCreationRequest.builder()
                             .username(userInfo.getEmail())
@@ -132,7 +129,7 @@ public class AuthenticationService {
                             .password(passwordRandom)
                             .dob(LocalDate.of(2000, 1, 1)) // Fix: Use valid default DOB
                             .build());
-                    
+
                     log.info("User created successfully with ID: {}", userResponse.getId());
 
                     userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
@@ -140,26 +137,39 @@ public class AuthenticationService {
                             .username(userResponse.getUsername())
                             .email(userResponse.getProfileResponse().getEmail())
                             .firstName(userResponse.getProfileResponse().getFirstName())
-                            .password(passwordRandom).build());
+                            .password(passwordRandom)
+                            .build());
 
-                    tokenInfo = generateToken(User.builder().username(userResponse.getUsername())
-                            .roles(userResponse.getRoles().stream().map(roleResponse -> Role.builder()
-                                    .name(roleResponse.getName())
-                                    .permissions(roleResponse.getPermissions().stream().map(permissionResponse -> Permission.builder()
-                                            .name(permissionResponse.getName())
-                                            .description(permissionResponse.getDescription())
-                                            .build()).collect(Collectors.toSet()))
-                                    .description(roleResponse.getDescription())
-                                    .build()).collect(Collectors.toSet()))
-                            .id(userResponse.getId()).build());
-                            
+                    tokenInfo = generateToken(User.builder()
+                            .username(userResponse.getUsername())
+                            .roles(userResponse.getRoles().stream()
+                                    .map(roleResponse -> Role.builder()
+                                            .name(roleResponse.getName())
+                                            .permissions(roleResponse.getPermissions().stream()
+                                                    .map(permissionResponse -> Permission.builder()
+                                                            .name(permissionResponse.getName())
+                                                            .description(permissionResponse.getDescription())
+                                                            .build())
+                                                    .collect(Collectors.toSet()))
+                                            .description(roleResponse.getDescription())
+                                            .build())
+                                    .collect(Collectors.toSet()))
+                            .id(userResponse.getId())
+                            .build());
+
                     log.info("Token generated successfully for new user");
                 } catch (Exception e) {
-                    log.error("Error creating user or generating token for {}: {}", userInfo.getEmail(), e.getMessage(), e);
+                    log.error(
+                            "Error creating user or generating token for {}: {}",
+                            userInfo.getEmail(),
+                            e.getMessage(),
+                            e);
                     throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
                 }
             } else {
-                log.info("User found, generating token for existing user: {}", user.get().getUsername());
+                log.info(
+                        "User found, generating token for existing user: {}",
+                        user.get().getUsername());
                 tokenInfo = generateToken(User.builder()
                         .id(user.get().getId())
                         .username(user.get().getId())
@@ -171,16 +181,14 @@ public class AuthenticationService {
                     .token(tokenInfo.token)
                     .expiryTime(tokenInfo.expiryDate)
                     .build();
-        }
-        catch (Exception e){
-            log.info("Error has message {}" , e.getMessage());
+        } catch (Exception e) {
+            log.info("Error has message {}", e.getMessage());
             throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
     }
 
-
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(15);
         var user = userRepository
                 .findByUsernameAndIsActiveTrue(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));

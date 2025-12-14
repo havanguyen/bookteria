@@ -108,11 +108,10 @@ public class UserService {
 
             clearUserListCaches();
 
-            log.info("Create user with id {} successfully " , userResponse.getId());
+            log.info("Create user with id {} successfully ", userResponse.getId());
             return userResponse;
-        }
-        catch (Exception e){
-            log.info("Error has message {}" , e.getMessage());
+        } catch (Exception e) {
+            log.info("Error has message {}", e.getMessage());
             throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
         }
     }

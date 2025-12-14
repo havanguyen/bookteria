@@ -1,19 +1,21 @@
 package com.hanguyen.notification.service;
 
-import com.hanguyen.notification.dto.event.OrderCompletedEvent;
-import com.hanguyen.notification.dto.request.Recipient;
-import com.hanguyen.notification.dto.request.SentEmailRequest;
-import com.hanguyen.notification.dto.response.EmailResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.text.NumberFormat;
+import java.util.List;
+import java.util.Locale;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.text.NumberFormat;
-import java.util.List;
-import java.util.Locale;
+import com.hanguyen.notification.dto.event.OrderCompletedEvent;
+import com.hanguyen.notification.dto.request.Recipient;
+import com.hanguyen.notification.dto.request.SentEmailRequest;
+import com.hanguyen.notification.dto.response.EmailResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -47,7 +49,7 @@ public class OrderEventConsumerService {
                 .build();
 
         try {
-            EmailResponse emailResponse= emailService.sentEmail(emailRequest);
+            EmailResponse emailResponse = emailService.sentEmail(emailRequest);
             log.info("Order confirmation email sent successfully, messageId: {}", emailResponse.getMessageId());
         } catch (Exception e) {
             log.error("Error sending order confirmation email", e);

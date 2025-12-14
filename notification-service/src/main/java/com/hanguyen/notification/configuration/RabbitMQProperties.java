@@ -1,7 +1,8 @@
 package com.hanguyen.notification.configuration;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import lombok.Data;
 
 @ConfigurationProperties(prefix = "spring.rabbitmq")
 @Data
