@@ -211,26 +211,21 @@ public class AuthenticationService {
         redisTemplate.delete(request.getToken());
     }
 
-    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException {
-        String jwt = redisTemplate.opsForValue().get(request.getToken());
-        if (jwt == null) throw new AppException(ErrorCode.UNAUTHENTICATED);
+    public AuthenticationResponse refreshToken(RefreshRequest request) {
+        if (request.getToken() == null) throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        SignedJWT signedJWT = SignedJWT.parse(jwt);
-        String userId = signedJWT.getJWTClaimsSet().getSubject();
+        String incomingRefreshTokenHash = computeHash(request.getToken());
 
-        var user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+        var user = userRepository
+                .findByRefreshToken(incomingRefreshTokenHash)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
-        String incomingRefreshTokenHash = computeHash(request.getRefreshToken());
-
-        if (user.getRefreshToken() == null
-                || !user.getRefreshToken().equals(incomingRefreshTokenHash)
+        if (user.getRefreshTokenExpiryTime() == null
                 || user.getRefreshTokenExpiryTime().isBefore(java.time.LocalDateTime.now())) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
         TokenInfo newTokenInfo = generateToken(user);
-
-        redisTemplate.delete(request.getToken());
 
         return AuthenticationResponse.builder()
                 .token(newTokenInfo.token)
