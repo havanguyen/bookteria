@@ -84,14 +84,15 @@ spring:
     mongodb:
       uri: mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER_HOST}/notification_db?appName=${MONGODB_APP_NAME}
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
+
 brevo:
   mcp:
     name-sender: "Bookteria"
     email-sender: ${NOTIFICATION_SERVICE_BREVO_EMAIL_SENDER}
     api-url: ${NOTIFICATION_SERVICE_BREVO_API_URL}
     brevo: ${NOTIFICATION_SERVICE_BREVO_API_KEY}
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json

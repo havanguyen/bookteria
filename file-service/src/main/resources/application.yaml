@@ -5,7 +5,14 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_DEFAULT_ZONE}
-spring.application.name: file-service
+spring:
+  application:
+    name: file-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
 spring.rabbitmq:
   host: ${RABBITMQ_HOST}
   port: ${RABBITMQ_PORT}
@@ -55,10 +62,4 @@ server:
 cloudinary:
   cloud_name: ${FILE_SERVICE_CLOUDINARY_CLOUD_NAME}
   api_key: ${FILE_SERVICE_CLOUDINARY_API_KEY}
-  api_key: ${FILE_SERVICE_CLOUDINARY_API_KEY}
   api_secret: ${FILE_SERVICE_CLOUDINARY_API_SECRET}
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
