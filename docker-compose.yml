@@ -78,9 +78,7 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
-    environment:
-      - REDIS_HOST=redis_bookteria
-      - REDIS_PORT=6379
+
 
   identity-service:
     image: ${DOCKER_USERNAME}/identity-service:latest
@@ -93,9 +91,7 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
-    environment:
-      - REDIS_HOST=redis_bookteria
-      - REDIS_PORT=6379
+
 
   profile-service:
     image: ${DOCKER_USERNAME}/profile-service:latest
@@ -156,9 +152,7 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
-    environment:
-      - REDIS_HOST=redis_bookteria
-      - REDIS_PORT=6379
+
 
   order-service:
     image: ${DOCKER_USERNAME}/order-service:latest
@@ -207,6 +201,8 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
+
+
 
 volumes:
   rabbitmq_data:
