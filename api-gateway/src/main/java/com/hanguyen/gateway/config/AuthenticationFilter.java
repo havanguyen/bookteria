@@ -109,7 +109,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         return Mono.fromCallable(() -> objectMapper.writeValueAsString(apiResponse))
                 .flatMap(body -> {
                     httpResponse.setStatusCode(HttpStatus.UNAUTHORIZED);
-                    httpResponse.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                    try {
+                        httpResponse.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+                    } catch (UnsupportedOperationException e) {
+                        log.warn("Failed to set Content-Type header: {}", e.getMessage());
+                    }
                     DataBuffer buffer = httpResponse.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
                     return httpResponse.writeWith(Mono.just(buffer));
                 })
