@@ -138,7 +138,8 @@ public class UserService {
         try {
             profileResponse = profileClient.getProfileByUserId(user.getId());
         } catch (Exception e) {
-            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+            log.error("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
+            profileResponse = null;
         }
         userResponse = userMapper.toUserResponse(user);
         userResponse.setProfileResponse(profileResponse);
@@ -404,7 +405,7 @@ public class UserService {
             profileResponse = profileClient.getProfileByUserId(user.getId());
         } catch (Exception e) {
             log.warn("Unable to fetch profile for user {}: {}", user.getId(), e.getMessage());
-            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+            profileResponse = null;
         }
 
         userResponse = userMapper.toUserResponse(user);

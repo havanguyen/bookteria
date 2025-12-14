@@ -66,8 +66,21 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@RequestBody LogoutRequest request, HttpServletResponse response) {
-        authenticationService.logout(request);
+    ApiResponse<Void> logout(
+            @RequestBody(required = false) LogoutRequest request,
+            @CookieValue(name = "ACCESS_TOKEN", required = false) String accessToken,
+            HttpServletResponse response) {
+        if (request == null) {
+            request = new LogoutRequest();
+        }
+
+        if ((request.getToken() == null || request.getToken().isEmpty()) && accessToken != null) {
+            request.setToken(accessToken);
+        }
+
+        if (request.getToken() != null && !request.getToken().isEmpty()) {
+            authenticationService.logout(request);
+        }
 
         Cookie accessCookie = new Cookie("ACCESS_TOKEN", null);
         accessCookie.setHttpOnly(true);

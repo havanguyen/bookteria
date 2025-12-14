@@ -1,10 +1,16 @@
 package com.hanguyen.identity.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -221,7 +227,7 @@ public class AuthenticationService {
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
         if (user.getRefreshTokenExpiryTime() == null
-                || user.getRefreshTokenExpiryTime().isBefore(java.time.LocalDateTime.now())) {
+                || user.getRefreshTokenExpiryTime().isBefore(LocalDateTime.now(ZoneId.of("UTC")))) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -239,10 +245,8 @@ public class AuthenticationService {
                 .type(new JOSEObjectType("at+jwt"))
                 .build();
 
-        Date issueTime = new Date();
-        Date expiryTime = new Date(Instant.ofEpochMilli(issueTime.getTime())
-                .plus(VALID_DURATION, ChronoUnit.SECONDS)
-                .toEpochMilli());
+        Date issueTime = Date.from(Instant.now());
+        Date expiryTime = Date.from(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS));
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getId())
@@ -268,7 +272,7 @@ public class AuthenticationService {
             String refreshTokenHash = computeHash(refreshToken);
 
             user.setRefreshToken(refreshTokenHash);
-            user.setRefreshTokenExpiryTime(java.time.LocalDateTime.now().plusDays(10));
+            user.setRefreshTokenExpiryTime(LocalDateTime.now(ZoneId.of("UTC")).plusDays(10));
             userRepository.save(user);
 
             return new TokenInfo(referenceToken, expiryTime, refreshToken);
@@ -280,10 +284,10 @@ public class AuthenticationService {
 
     private String computeHash(String input) {
         try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return java.util.HexFormat.of().formatHex(encodedhash);
-        } catch (java.security.NoSuchAlgorithmException e) {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(encodedhash);
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
