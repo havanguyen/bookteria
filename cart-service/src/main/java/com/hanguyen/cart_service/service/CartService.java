@@ -1,6 +1,5 @@
 package com.hanguyen.cart_service.service;
 
-import com.hanguyen.cart_service.configration.RabbitMQConfig;
 import com.hanguyen.cart_service.configration.RabbitMQProperties;
 import com.hanguyen.cart_service.dto.ApiResponse;
 import com.hanguyen.cart_service.dto.ProductInCart;
@@ -16,7 +15,6 @@ import com.hanguyen.cart_service.repository.CartRepository;
 import com.hanguyen.cart_service.repository.client.InventoryClient;
 import com.hanguyen.cart_service.repository.client.ProductClient;
 import com.hanguyen.cart_service.utils.SecurityUtils;
-import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -53,26 +51,32 @@ public class CartService {
     static final String KEY_PREFIX = "cart:";
     static final long TTL_IN_DAYS = 7L;
 
-
     @CircuitBreaker(name = "productService", fallbackMethod = "fallbackAddProduct")
     public CartResponse addProductToCart(CartRequest request) {
-        ProductResponse product ;
+        ProductResponse product;
         try {
             ApiResponse<ProductResponse> productApiResponse = productClient.getProductByBookId(request.getBookId());
             product = (productApiResponse != null) ? productApiResponse.getResult() : null;
             if (product == null || product.getId() == null) {
-                log.error("[CartService] Can not find product with id={} for userId={}", request.getBookId(), getCartKey());
+                log.error("[CartService] Can not find product with id={} for userId={}", request.getBookId(),
+                        getCartKey());
                 throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
             }
-        }
-        catch (FeignException e){
+        } catch (Exception e) {
+            log.error("Error checking product {}: {}", request.getBookId(), e.getMessage());
             throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
+        InventoryResponse inventory;
+        try {
+            ApiResponse<InventoryResponse> inventoryResponse = inventoryClient.getStockById(request.getBookId());
+            inventory = (inventoryResponse != null) ? inventoryResponse.getResult() : null;
+        } catch (Exception e) {
+            log.error("Failed to check inventory for book {}: {}", request.getBookId(), e.getMessage());
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
 
-        ApiResponse<InventoryResponse> inventoryResponse = inventoryClient.getStockById(request.getBookId());
-        InventoryResponse inventory = (inventoryResponse != null) ? inventoryResponse.getResult() : null;
-        if (inventory ==null || inventory.getBookId() == null ){
+        if (inventory == null || inventory.getBookId() == null) {
             throw new AppException(ErrorCode.QUANTITY_EXCEPTION);
         }
         if (inventory.getStock() < request.getQuantity()) {
@@ -113,7 +117,7 @@ public class CartService {
         Map<String, CartRequest> redisCart = hashOps.entries(key);
 
         if (!redisCart.isEmpty()) {
-            log.info("Get hit product in cart from redis has key : {}" , key);
+            log.info("Get hit product in cart from redis has key : {}", key);
             redisTemplate.expire(key, TTL_IN_DAYS, TimeUnit.DAYS);
             List<CartResponse> responses = new ArrayList<>();
 
@@ -124,9 +128,8 @@ public class CartService {
                 try {
                     ApiResponse<ProductResponse> productApiResponse = productClient.getProductByBookId(bookId);
                     product = (productApiResponse != null) ? productApiResponse.getResult() : null;
-                }
-                catch (FeignException e){
-                    log.info("Product has id {} not found" , bookId);
+                } catch (Exception e) {
+                    log.error("Product has id {} not found or service down: {}", bookId, e.getMessage());
                     product = null;
                 }
 
@@ -153,22 +156,23 @@ public class CartService {
         for (ProductInCart productInCart : productInCarts) {
             ProductResponse product;
             try {
-                ApiResponse<ProductResponse> productApiResponse = productClient.getProductByBookId(productInCart.getBookId());
+                ApiResponse<ProductResponse> productApiResponse = productClient
+                        .getProductByBookId(productInCart.getBookId());
                 product = (productApiResponse != null) ? productApiResponse.getResult() : null;
-            }
-            catch (FeignException e){
-                log.info("Product has id {} not found when read data from db" , productInCart.getBookId());
+            } catch (Exception e) {
+                log.error("Product has id {} not found when read data from db: {}", productInCart.getBookId(),
+                        e.getMessage());
                 product = null;
             }
-            if(product != null && productInCart.getInstant().isAfter(Instant.now().minus(7, ChronoUnit.DAYS))) {
+            if (product != null && productInCart.getInstant().isAfter(Instant.now().minus(7, ChronoUnit.DAYS))) {
                 hashOps.put(key, productInCart.getBookId(), CartRequest.builder()
                         .bookId(productInCart.getBookId())
                         .quantity(productInCart.getQuantity()).build());
 
                 responses.add(CartResponse.builder()
-                            .productResponse(product)
-                            .quantity(productInCart.getQuantity())
-                            .build());
+                        .productResponse(product)
+                        .quantity(productInCart.getQuantity())
+                        .build());
             }
         }
         redisTemplate.expire(key, TTL_IN_DAYS, TimeUnit.DAYS);
@@ -176,22 +180,29 @@ public class CartService {
     }
 
     public CartResponse updateQuantity(CartRequest cartRequest) {
-        ProductResponse product ;
+        ProductResponse product;
         try {
             ApiResponse<ProductResponse> productApiResponse = productClient.getProductByBookId(cartRequest.getBookId());
             product = (productApiResponse != null) ? productApiResponse.getResult() : null;
             if (product == null || product.getId() == null) {
-                log.error("[CartService] Can not find product with id={} for userId={} when update quantity", cartRequest.getBookId(), getCartKey());
+                log.error("[CartService] Can not find product with id={} for userId={} when update quantity",
+                        cartRequest.getBookId(), getCartKey());
                 throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
             }
-        }
-        catch (FeignException e){
+        } catch (Exception e) {
+            log.error("Error fetching product {}: {}", cartRequest.getBookId(), e.getMessage());
             throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
-        ApiResponse<InventoryResponse> inventoryResponse = inventoryClient.getStockById(cartRequest.getBookId());
-        InventoryResponse inventory = (inventoryResponse != null) ? inventoryResponse.getResult() : null;
-        if (inventory ==null || inventory.getBookId() == null ){
+        InventoryResponse inventory;
+        try {
+            ApiResponse<InventoryResponse> inventoryResponse = inventoryClient.getStockById(cartRequest.getBookId());
+            inventory = (inventoryResponse != null) ? inventoryResponse.getResult() : null;
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
+
+        if (inventory == null || inventory.getBookId() == null) {
             throw new AppException(ErrorCode.QUANTITY_EXCEPTION);
         }
 
@@ -255,29 +266,26 @@ public class CartService {
         return KEY_PREFIX + userId;
     }
 
-
-    private void sendSyncDataEvent(ProductInCart productInCart){
-        CartSyncDataEvent cartSyncDataEvent  = CartSyncDataEvent.builder()
+    private void sendSyncDataEvent(ProductInCart productInCart) {
+        CartSyncDataEvent cartSyncDataEvent = CartSyncDataEvent.builder()
                 .userId(SecurityUtils.getUserId())
                 .productInCart(productInCart)
                 .build();
 
-        log.info("Sync data cart with mongoDB id {} , data {}" , SecurityUtils.getUserId() , productInCart.getBookId());
+        log.info("Sync data cart with mongoDB id {} , data {}", SecurityUtils.getUserId(), productInCart.getBookId());
         rabbitTemplate.convertAndSend(
                 rabbitMQProperties.getExchanges().getCart(),
                 rabbitMQProperties.getRoutingKeys().getCartSync(),
-                cartSyncDataEvent
-        );
+                cartSyncDataEvent);
     }
 
     public void deleteCartByUserId(String userId) {
         try {
             cartRepository.deleteById(userId);
             log.info("Cart deleted for userId: {}", userId);
-        }
-       catch (Exception e){
-           log.info("Deletion cart failed for userId: {}", userId);
+        } catch (Exception e) {
+            log.info("Deletion cart failed for userId: {}", userId);
             throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
-       }
+        }
     }
 }

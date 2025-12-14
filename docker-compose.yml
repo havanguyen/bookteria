@@ -78,6 +78,9 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
+    environment:
+      - REDIS_HOST=redis_bookteria
+      - REDIS_PORT=6379
 
   identity-service:
     image: ${DOCKER_USERNAME}/identity-service:latest
@@ -90,6 +93,9 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
+    environment:
+      - REDIS_HOST=redis_bookteria
+      - REDIS_PORT=6379
 
   profile-service:
     image: ${DOCKER_USERNAME}/profile-service:latest
@@ -150,6 +156,9 @@ services:
     networks:
       - bookteria-net
     env_file: ./.env
+    environment:
+      - REDIS_HOST=redis_bookteria
+      - REDIS_PORT=6379
 
   order-service:
     image: ${DOCKER_USERNAME}/order-service:latest
@@ -316,14 +325,6 @@ networks:
 #      volumes:
 #        - mongodb_data:/bitnami/mongodb
 #
-#  redis_bookteria:
-#    image: redis:8.2.2
-#    container_name: redis_bookteria
-#    ports:
-#      - "6379:6379"
-#    volumes:
-#      - redis_data:/data
-#    command: redis-server --appendonly yes
 #
 #  rabbitmq_bookteria:
 #    image: rabbitmq:4.1.5-management-alpine
