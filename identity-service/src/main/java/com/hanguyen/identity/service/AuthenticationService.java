@@ -249,7 +249,7 @@ public class AuthenticationService {
         Date expiryTime = Date.from(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS));
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(user.getId())
+                .subject(user.getUsername())
                 .issuer("bookteria.click")
                 .issueTime(issueTime)
                 .expirationTime(expiryTime)
