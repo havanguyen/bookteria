@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 public class UserEvent {
     String userId;
     String username;
+    String password;
     String email;
     String firstName;
     String typeEvent;

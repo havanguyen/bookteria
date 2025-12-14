@@ -2,23 +2,24 @@ package com.hanguyen.identity.service;
 
 import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
 
+import com.hanguyen.identity.dto.event.UserEvent;
+import com.hanguyen.identity.dto.request.*;
+import com.hanguyen.identity.dto.response.*;
+import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
+import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
+import com.hanguyen.identity.utils.PasswordGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import com.hanguyen.identity.dto.request.AuthenticationRequest;
-import com.hanguyen.identity.dto.request.IntrospectRequest;
-import com.hanguyen.identity.dto.request.LogoutRequest;
-import com.hanguyen.identity.dto.request.RefreshRequest;
-import com.hanguyen.identity.dto.response.AuthenticationResponse;
-import com.hanguyen.identity.dto.response.IntrospectResponse;
 import com.hanguyen.identity.entity.InvalidatedToken;
 import com.hanguyen.identity.entity.User;
 import com.hanguyen.identity.exception.AppException;
@@ -45,9 +46,38 @@ public class AuthenticationService {
     UserRepository userRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
 
+    OutboundIdentityClient outboundIdentityClient;
+    OutboundUserClient outboundUserClient;
+    UserEventProducerService userEventProducerService;
+    UserService userService;
+
+
     @NonFinal
     @Value("${jwt.signerKey}")
-    protected String signerKey;
+    protected String SIGNER_KEY;
+
+    @NonFinal
+    @Value("${jwt.valid-duration}")
+    protected long VALID_DURATION;
+
+    @NonFinal
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESHABLE_DURATION;
+
+    @NonFinal
+    @Value("${outbound.identity.client-id}")
+    protected String CLIENT_ID;
+
+    @NonFinal
+    @Value("${outbound.identity.client-secret}")
+    protected String CLIENT_SECRET;
+
+    @NonFinal
+    @Value("${outbound.identity.redirect-uri}")
+    protected String REDIRECT_URI;
+
+    @NonFinal
+    protected String GRANT_TYPE = "authorization_code";
 
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
@@ -61,6 +91,46 @@ public class AuthenticationService {
 
         return IntrospectResponse.builder().valid(isValid).build();
     }
+
+    public AuthenticationResponse outboundAuthenticate(String code){
+        ExchangeTokenResponse response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
+                .code(code)
+                .clientId(CLIENT_ID)
+                .clientSecret(CLIENT_SECRET)
+                .redirectUri(REDIRECT_URI)
+                .grantType(GRANT_TYPE)
+                .build());
+
+        log.info("TOKEN RESPONSE {}", response);
+        OutboundUserResponse userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+
+        log.info("User Info {}", userInfo);
+
+        var user = userRepository.findByUsername(userInfo.getEmail());
+
+        if (user.isEmpty()){
+            String passwordRandom = PasswordGenerator.generateStrongPassword(10);
+            UserResponse userResponse =  userService.createUser(UserCreationRequest.builder()
+                            .username(userInfo.getEmail())
+                            .email(userInfo.getEmail())
+                            .firstName(userInfo.getName())
+                            .lastName(userInfo.getGivenName())
+                            .password(passwordRandom)
+                            .dob(LocalDate.now())
+                    .build());
+             userEventProducerService.sendUserCreationOAuth2Event(UserEvent.builder()
+                             .userId(userResponse.getId())
+                             .username(userResponse.getUsername())
+                             .email(userResponse.getProfileResponse().getEmail())
+                             .firstName(userResponse.getProfileResponse().getFirstName())
+                             .password(passwordRandom).build());
+        }
+
+        return AuthenticationResponse.builder()
+                .token(response.getAccessToken())
+                .build();
+    }
+
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
@@ -127,7 +197,7 @@ public class AuthenticationService {
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getUsername())
-                .issuer("hanguyenvippromen.com")
+                .issuer("bookteria.click")
                 .issueTime(issueTime)
                 .expirationTime(expiryTime)
                 .jwtID(UUID.randomUUID().toString())
@@ -140,7 +210,7 @@ public class AuthenticationService {
         JWSObject jwsObject = new JWSObject(header, payload);
 
         try {
-            jwsObject.sign(new MACSigner(signerKey.getBytes()));
+            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
             return new TokenInfo(jwsObject.serialize(), expiryTime);
         } catch (JOSEException e) {
             log.error("Cannot create token", e);
@@ -149,7 +219,7 @@ public class AuthenticationService {
     }
 
     private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
-        JWSVerifier verifier = new MACVerifier(signerKey.getBytes());
+        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
         SignedJWT signedJWT = SignedJWT.parse(token);
 

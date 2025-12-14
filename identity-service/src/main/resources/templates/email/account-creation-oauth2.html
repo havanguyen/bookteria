@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base(headerTitle='Account Created')}">
+<head>
+    <title>Welcome to Bookteria</title>
+</head>
+<body>
+
+<th:block layout:fragment="content">
+
+    <h2>Welcome to Bookteria!</h2>
+
+    <p th:text="'Hello ' + ${firstName} + ','">Hello User,</p>
+
+    <p>You have successfully logged in using your Google account. We have initialized a Bookteria account for you.</p>
+
+    <p>Below are your system-generated credentials. You can use these to log in directly without Google, or if you wish to change your password later.</p>
+
+    <div style="background-color: #f0f4f8; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #0077cc;">
+        <p style="margin: 5px 0; font-size: 16px;">
+            <strong>Username:</strong> <span th:text="${username}" style="font-family: monospace; color: #333;">user123</span>
+        </p>
+        <p style="margin: 5px 0; font-size: 16px;">
+            <strong>Password:</strong> <span th:text="${password}" style="font-family: monospace; color: #d9534f;">pass123</span>
+        </p>
+    </div>
+
+    <p><strong>Important:</strong> For security reasons, we highly recommend that you change your password after your first login.</p>
+
+    <p style="text-align: center; margin-top: 30px;">
+        <a href="https://bookteria.click/login" class="button">Login to Dashboard</a>
+    </p>
+
+</th:block>
+
+</body>
+</html>

@@ -15,15 +15,30 @@ public class UserEventProducerService {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private static final String TOPIC_NAME = "user-registration-topic";
+    private static final String TOPIC_USER_CREATE = "user-registration-topic";
     private static final String TOPIC_USER_UPDATE = "user-updated-topic";
     private static final String TOPIC_USER_DELETE = "user-deleted-topic";
+    private static final String TOPIC_USER_CREATE_OAUTH2 = "user-registration-oauth2-topic";
 
     public void sendUserCreationEvent(UserEvent event) {
         try {
             log.info("Sending user creation event to Kafka: {}", event);
-            kafkaTemplate.send(TOPIC_NAME, event.getUserId(), event);
+            kafkaTemplate.send(TOPIC_USER_CREATE, event.getUserId(), event);
             log.info("Successfully sent event for user ID: {}", event.getUserId());
+        } catch (Exception e) {
+            log.error(
+                    "Error sending user creation event to Kafka for user ID {}: {}",
+                    event.getUserId(),
+                    e.getMessage(),
+                    e);
+        }
+    }
+
+    public void sendUserCreationOAuth2Event(UserEvent event) {
+        try {
+            log.info("Sending user creation OAuth2 event to Kafka: {}", event);
+            kafkaTemplate.send(TOPIC_USER_CREATE_OAUTH2,  event.getUserId(), event);
+            log.info("Successfully OAuth2 event for user ID: {}", event.getUserId());
         } catch (Exception e) {
             log.error(
                     "Error sending user creation event to Kafka for user ID {}: {}",

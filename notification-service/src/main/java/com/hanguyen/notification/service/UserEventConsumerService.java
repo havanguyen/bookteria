@@ -61,6 +61,41 @@ public class UserEventConsumerService {
         }
     }
 
+    @KafkaListener(topics = "user-registration-oauth2-topic", groupId = "notification-group")
+    public void handleUserCreationOAuth2Event(@Payload UserEvent event) {
+        if (event == null || !StringUtils.hasText(event.getEmail()) || !StringUtils.hasText(event.getTypeEvent())) {
+            log.warn("Received oauth2 event is null or email/typeEvent is missing. Skipping email sending.");
+            return;
+        }
+        if (!TypeEvent.OAUTH2.getEvent().equals(event.getTypeEvent())) {
+            log.warn("Received oauth2 event type {} on create topic. Skipping.", event.getTypeEvent());
+            return;
+        }
+
+        try {
+            Context context = new Context();
+            context.setVariable("username", event.getUsername());
+            context.setVariable("firstName", event.getFirstName());
+            context.setVariable("password", event.getPassword());
+
+            String htmlContent = templateEngine.process("email/account-creation-oauth2", context);
+
+            SentEmailRequest emailRequest = SentEmailRequest.builder()
+                    .recipients(List.of(Recipient.builder()
+                            .name(event.getUsername())
+                            .email(event.getEmail())
+                            .build()))
+                    .subject("Welcome to Bookteria!")
+                    .htmlContent(htmlContent)
+                    .build();
+
+            emailService.sentEmail(emailRequest);
+            log.info("Processed welcome email oauth2 for user ID: {}", event.getUserId());
+        } catch (Exception e) {
+            log.error("Error processing user creation event for user ID {}: {}", event.getUserId(), e.getMessage(), e);
+        }
+    }
+
     @KafkaListener(topics = "user-updated-topic", groupId = "notification-group")
     public void handleUserUpdateEvent(@Payload UserEvent event) {
         if (event == null || !StringUtils.hasText(event.getEmail()) || !StringUtils.hasText(event.getTypeEvent())) {
