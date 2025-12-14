@@ -27,61 +27,68 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE , makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
-    IdentityService identityService;
+    org.springframework.data.redis.core.ReactiveStringRedisTemplate redisTemplate;
     ObjectMapper objectMapper;
 
     @NonFinal
-    private String[] publicEndpoint = {
+    String[] publicEndpoint = {
             "/identity/auth/.*",
             "/identity/users/registration",
+            "/identity/.well-known/jwks.json",
             "/notification/email/sent",
             "/search/.*",
             "/inventory/.*",
-            "/payment/.*" ,
-            "/products", "/products/.*", "/categories", "/categories/.*", "/authors", "/authors/.*", "/publishers", "/publishers/.*"
+            "/payment/.*",
+            "/products", "/products/.*", "/categories", "/categories/.*", "/authors", "/authors/.*", "/publishers",
+            "/publishers/.*"
     };
 
     @Value("${app.api-prefix}")
     @NonFinal
     String apiPrefix;
 
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
-       if (isPublicEndpoint(exchange.getRequest())) {
-          return   chain.filter(exchange);
-       }
-        List<String> authHeader =
-                exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+        if (isPublicEndpoint(exchange.getRequest())) {
+            return chain.filter(exchange);
+        }
+        String token = null;
+        List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
 
-        if (CollectionUtils.isEmpty(authHeader)) {
+        if (!CollectionUtils.isEmpty(authHeader)) {
+            token = authHeader.getFirst().replace("Bearer ", "");
+        } else {
+            var cookies = exchange.getRequest().getCookies();
+            if (cookies.containsKey("ACCESS_TOKEN")) {
+                token = Objects.requireNonNull(cookies.getFirst("ACCESS_TOKEN")).getValue();
+            }
+        }
+
+        if (token == null) {
             return unauthenticated(exchange.getResponse());
         }
-        String token = authHeader.getFirst().replace("Bearer ", "");
+
         log.info("Token: {}", token);
 
-        return identityService.introspect(token)
-                .flatMap(introspectResponse -> {
-                    log.info("Introspection result: {}", introspectResponse.getResult().isValid());
-                    if (introspectResponse.getResult().isValid()) {
-                        return chain.filter(exchange);
-                    } else {
-
-                        return unauthenticated(exchange.getResponse());
-                    }
+        return redisTemplate.opsForValue().get(token)
+                .flatMap(jwt -> {
+                    ServerWebExchange mutatedExchange = exchange.mutate()
+                            .request(exchange.getRequest().mutate()
+                                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                                    .build())
+                            .build();
+                    return chain.filter(mutatedExchange);
                 })
-                .onErrorResume(throwable -> {
-                    log.error("Error during token introspection", throwable);
-                    return unauthenticated(exchange.getResponse());
-                });
+                .switchIfEmpty(Mono.defer(() -> unauthenticated(exchange.getResponse())));
     }
 
     @Override
@@ -89,9 +96,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         return -1;
     }
 
-    private boolean isPublicEndpoint(ServerHttpRequest request){
-       return Arrays.stream(publicEndpoint).anyMatch(s ->
-                request.getURI().getPath().matches(apiPrefix+s));
+    private boolean isPublicEndpoint(ServerHttpRequest request) {
+        return Arrays.stream(publicEndpoint).anyMatch(s -> request.getURI().getPath().matches(apiPrefix + s));
     }
 
     private Mono<Void> unauthenticated(ServerHttpResponse httpResponse) {

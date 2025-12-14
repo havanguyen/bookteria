@@ -7,18 +7,20 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import com.hanguyen.identity.constant.TypeEvent;
 import com.hanguyen.identity.dto.event.UserEvent;
 import com.hanguyen.identity.dto.request.*;
 import com.hanguyen.identity.dto.response.*;
-import com.hanguyen.identity.entity.InvalidatedToken;
 import com.hanguyen.identity.entity.Permission;
 import com.hanguyen.identity.entity.Role;
 import com.hanguyen.identity.entity.User;
@@ -29,10 +31,10 @@ import com.hanguyen.identity.repository.RoleRepository;
 import com.hanguyen.identity.repository.UserRepository;
 import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
 import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
+import com.hanguyen.identity.utils.KeyUtils;
 import com.hanguyen.identity.utils.PasswordGenerator;
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -57,9 +59,9 @@ public class AuthenticationService {
 
     RoleRepository roleRepository;
 
-    @NonFinal
-    @Value("${jwt.signerKey}")
-    protected String SIGNER_KEY;
+    KeyUtils keyUtils;
+
+    StringRedisTemplate redisTemplate;
 
     @NonFinal
     @Value("${jwt.valid-duration}")
@@ -126,8 +128,9 @@ public class AuthenticationService {
                             .email(userInfo.getEmail())
                             .firstName(userInfo.getName())
                             .lastName(userInfo.getGivenName())
+                            .typeEvent(TypeEvent.OAUTH2.getEvent())
                             .password(passwordRandom)
-                            .dob(LocalDate.of(2000, 1, 1)) // Fix: Use valid default DOB
+                            .dob(LocalDate.of(2000, 1, 1))
                             .build());
 
                     log.info("User created successfully with ID: {}", userResponse.getId());
@@ -137,6 +140,7 @@ public class AuthenticationService {
                             .username(userResponse.getUsername())
                             .email(userResponse.getProfileResponse().getEmail())
                             .firstName(userResponse.getProfileResponse().getFirstName())
+                            .typeEvent(TypeEvent.OAUTH2.getEvent())
                             .password(passwordRandom)
                             .build());
 
@@ -170,11 +174,8 @@ public class AuthenticationService {
                 log.info(
                         "User found, generating token for existing user: {}",
                         user.get().getUsername());
-                tokenInfo = generateToken(User.builder()
-                        .id(user.get().getId())
-                        .username(user.get().getId())
-                        .roles(user.get().getRoles())
-                        .build());
+                User user1 = user.get();
+                tokenInfo = generateToken(user1);
             }
 
             return AuthenticationResponse.builder()
@@ -202,62 +203,59 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .token(token.token)
                 .expiryTime(token.expiryDate)
+                .refreshToken(token.refreshToken)
                 .build();
     }
 
-    public void logout(LogoutRequest request) throws ParseException, JOSEException {
-        var signToken = verifyToken(request.getToken());
-
-        String jit = signToken.getJWTClaimsSet().getJWTID();
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
-
-        InvalidatedToken invalidatedToken =
-                InvalidatedToken.builder().id(jit).expiryTime(expiryTime).build();
-
-        invalidatedTokenRepository.save(invalidatedToken);
+    public void logout(LogoutRequest request) {
+        redisTemplate.delete(request.getToken());
     }
 
-    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
-        var signedJWT = verifyToken(request.getToken());
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException {
+        String jwt = redisTemplate.opsForValue().get(request.getToken());
+        if (jwt == null) throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        var jit = signedJWT.getJWTClaimsSet().getJWTID();
-        var expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        SignedJWT signedJWT = SignedJWT.parse(jwt);
+        String userId = signedJWT.getJWTClaimsSet().getSubject();
 
-        InvalidatedToken invalidatedToken =
-                InvalidatedToken.builder().id(jit).expiryTime(expiryTime).build();
+        var user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
-        invalidatedTokenRepository.save(invalidatedToken);
+        String incomingRefreshTokenHash = computeHash(request.getRefreshToken());
 
-        var username = signedJWT.getJWTClaimsSet().getSubject();
+        if (user.getRefreshToken() == null
+                || !user.getRefreshToken().equals(incomingRefreshTokenHash)
+                || user.getRefreshTokenExpiryTime().isBefore(java.time.LocalDateTime.now())) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
 
-        var user = userRepository
-                .findByUsernameAndIsActiveTrue(username)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+        TokenInfo newTokenInfo = generateToken(user);
 
-        var token = generateToken(user);
+        redisTemplate.delete(request.getToken());
 
         return AuthenticationResponse.builder()
-                .token(token.token)
-                .expiryTime(token.expiryDate)
+                .token(newTokenInfo.token)
+                .expiryTime(newTokenInfo.expiryDate)
+                .refreshToken(newTokenInfo.refreshToken)
                 .build();
     }
 
     private TokenInfo generateToken(User user) {
-        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .type(new JOSEObjectType("at+jwt"))
+                .build();
 
         Date issueTime = new Date();
         Date expiryTime = new Date(Instant.ofEpochMilli(issueTime.getTime())
-                .plus(100, ChronoUnit.HOURS)
+                .plus(VALID_DURATION, ChronoUnit.SECONDS)
                 .toEpochMilli());
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(user.getUsername())
+                .subject(user.getId())
                 .issuer("bookteria.click")
                 .issueTime(issueTime)
                 .expirationTime(expiryTime)
                 .jwtID(UUID.randomUUID().toString())
                 .claim("scope", buildScope(user))
-                .claim("userId", user.getId())
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
@@ -265,16 +263,40 @@ public class AuthenticationService {
         JWSObject jwsObject = new JWSObject(header, payload);
 
         try {
-            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
-            return new TokenInfo(jwsObject.serialize(), expiryTime);
+            jwsObject.sign(new com.nimbusds.jose.crypto.RSASSASigner(keyUtils.getPrivateKey()));
+            String jwt = jwsObject.serialize();
+
+            String referenceToken = UUID.randomUUID().toString();
+            redisTemplate.opsForValue().set(referenceToken, jwt, VALID_DURATION, TimeUnit.SECONDS);
+
+            String refreshToken = UUID.randomUUID().toString();
+            String refreshTokenHash = computeHash(refreshToken);
+
+            user.setRefreshToken(refreshTokenHash);
+            user.setRefreshTokenExpiryTime(java.time.LocalDateTime.now().plusDays(10));
+            userRepository.save(user);
+
+            return new TokenInfo(referenceToken, expiryTime, refreshToken);
         } catch (JOSEException e) {
             log.error("Cannot create token", e);
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
 
-    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
-        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+    private String computeHash(String input) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(encodedhash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public record TokenInfo(String token, Date expiryDate, String refreshToken) {}
+
+    private void verifyToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new RSASSAVerifier(keyUtils.getPublicKey());
 
         SignedJWT signedJWT = SignedJWT.parse(token);
 
@@ -286,8 +308,6 @@ public class AuthenticationService {
 
         if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
-
-        return signedJWT;
     }
 
     private String buildScope(User user) {
@@ -302,6 +322,4 @@ public class AuthenticationService {
 
         return stringJoiner.toString();
     }
-
-    private record TokenInfo(String token, Date expiryDate) {}
 }

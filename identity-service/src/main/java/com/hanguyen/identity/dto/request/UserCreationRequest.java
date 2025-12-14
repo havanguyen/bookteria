@@ -34,4 +34,6 @@ public class UserCreationRequest {
     @NotBlank(message = "EMAIL_REQUIRED")
     @Email(message = "INVALID_EMAIL_FORMAT")
     String email;
+
+    String typeEvent;
 }

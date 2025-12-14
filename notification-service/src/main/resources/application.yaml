@@ -90,3 +90,8 @@ brevo:
     email-sender: ${NOTIFICATION_SERVICE_BREVO_EMAIL_SENDER}
     api-url: ${NOTIFICATION_SERVICE_BREVO_API_URL}
     brevo: ${NOTIFICATION_SERVICE_BREVO_API_KEY}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json

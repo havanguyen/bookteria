@@ -97,3 +97,8 @@ vnpay:
   apiUrl: ${PAYMENT_SERVICE_VNPAY_API_URL}
   returnUrl: ${PAYMENT_SERVICE_VNPAY_RETURN_URL}
   ipnUrl: ${PAYMENT_SERVICE_VNPAY_IPN_URL}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json

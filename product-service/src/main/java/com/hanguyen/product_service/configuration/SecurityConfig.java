@@ -14,14 +14,9 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final CustomJwtDecoder customJwtDecoder;
-
-    public SecurityConfig(CustomJwtDecoder customJwtDecoder) {
-        this.customJwtDecoder = customJwtDecoder;
-    }
-
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/products", "/products/**", "/categories", "/categories/**", "/authors", "/authors/**", "/publishers", "/publishers/**"
+            "/products", "/products/**", "/categories", "/categories/**", "/authors", "/authors/**", "/publishers",
+            "/publishers/**"
     };
 
     @Bean
@@ -31,8 +26,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-                        .decoder(customJwtDecoder)
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);

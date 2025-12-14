@@ -27,4 +27,10 @@ public class User {
 
     @ManyToMany
     Set<Role> roles;
+
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
+    String refreshToken;
+
+    @Column(name = "refresh_token_expiry_time")
+    java.time.LocalDateTime refreshTokenExpiryTime;
 }

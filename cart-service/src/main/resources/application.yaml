@@ -71,3 +71,8 @@ spring:
       password: ${REDIS_PASSWORD}
     mongodb:
       uri: mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER_HOST}/cart_db?appName=${MONGODB_APP_NAME}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://identity-service:8080/identity/.well-known/jwks.json
