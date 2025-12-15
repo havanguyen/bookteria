@@ -82,6 +82,12 @@ spring:
       type:
         headers: true
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDENTITY_SERVICE_JWK_URI}
+
 jwt:
   signerKey: ${IDENTITY_SERVICE_JWT_SIGNER_KEY}
   valid-duration: 3600

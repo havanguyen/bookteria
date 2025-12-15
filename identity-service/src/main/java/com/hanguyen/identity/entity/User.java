@@ -1,5 +1,6 @@
 package com.hanguyen.identity.entity;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 import jakarta.persistence.*;
@@ -32,5 +33,5 @@ public class User {
     String refreshToken;
 
     @Column(name = "refresh_token_expiry_time")
-    java.time.LocalDateTime refreshTokenExpiryTime;
+    LocalDateTime refreshTokenExpiryTime;
 }

@@ -16,6 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,6 +42,7 @@ import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
 import com.hanguyen.identity.utils.KeyUtils;
 import com.hanguyen.identity.utils.PasswordGenerator;
 import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -54,6 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional
 public class AuthenticationService {
     UserRepository userRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
@@ -133,6 +137,7 @@ public class AuthenticationService {
                             .username(userInfo.getEmail())
                             .email(userInfo.getEmail())
                             .firstName(userInfo.getName())
+                            .avatarUrl(userInfo.getPicture())
                             .lastName(userInfo.getGivenName())
                             .typeEvent(TypeEvent.OAUTH2.getEvent())
                             .password(passwordRandom)
@@ -218,16 +223,28 @@ public class AuthenticationService {
     }
 
     public AuthenticationResponse refreshToken(RefreshRequest request) {
-        if (request.getToken() == null) throw new AppException(ErrorCode.UNAUTHENTICATED);
+        log.info("Request refresh token");
 
-        String incomingRefreshTokenHash = computeHash(request.getToken());
+        String token = request.getRefreshToken();
+        if (token == null || token.isEmpty()) {
+            token = request.getToken();
+        }
 
-        var user = userRepository
-                .findByRefreshToken(incomingRefreshTokenHash)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+        if (token == null) {
+            log.warn("Token is null");
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        String incomingRefreshTokenHash = computeHash(token);
+
+        var user = userRepository.findByRefreshToken(incomingRefreshTokenHash).orElseThrow(() -> {
+            log.warn("Refresh token not found");
+            return new AppException(ErrorCode.UNAUTHENTICATED);
+        });
 
         if (user.getRefreshTokenExpiryTime() == null
                 || user.getRefreshTokenExpiryTime().isBefore(LocalDateTime.now(ZoneId.of("UTC")))) {
+            log.warn("Refresh token expired");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -262,7 +279,7 @@ public class AuthenticationService {
         JWSObject jwsObject = new JWSObject(header, payload);
 
         try {
-            jwsObject.sign(new com.nimbusds.jose.crypto.RSASSASigner(keyUtils.getPrivateKey()));
+            jwsObject.sign(new RSASSASigner(keyUtils.getPrivateKey()));
             String jwt = jwsObject.serialize();
 
             String referenceToken = UUID.randomUUID().toString();
@@ -274,6 +291,8 @@ public class AuthenticationService {
             user.setRefreshToken(refreshTokenHash);
             user.setRefreshTokenExpiryTime(LocalDateTime.now(ZoneId.of("UTC")).plusDays(10));
             userRepository.save(user);
+
+            log.info("Saved user {} with new refresh token hash", user.getUsername());
 
             return new TokenInfo(referenceToken, expiryTime, refreshToken);
         } catch (JOSEException e) {

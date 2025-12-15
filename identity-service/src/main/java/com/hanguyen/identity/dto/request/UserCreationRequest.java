@@ -31,6 +31,8 @@ public class UserCreationRequest {
 
     String city;
 
+    String avatarUrl;
+
     @NotBlank(message = "EMAIL_REQUIRED")
     @Email(message = "INVALID_EMAIL_FORMAT")
     String email;

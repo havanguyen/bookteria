@@ -51,8 +51,7 @@ public class AuthenticationController {
     ApiResponse<AuthenticationResponse> authenticate(
             @RequestBody(required = false) RefreshRequest request,
             @CookieValue(name = "REFRESH_TOKEN", required = false) String refreshToken,
-            HttpServletResponse response)
-            throws ParseException {
+            HttpServletResponse response) {
         if (request == null) {
             request = new RefreshRequest();
         }

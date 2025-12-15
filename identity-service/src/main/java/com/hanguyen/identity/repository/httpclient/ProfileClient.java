@@ -19,12 +19,12 @@ public interface ProfileClient {
     UserProfileResponse createProfile(@RequestBody ProfileCreationRequest profileCreationRequest);
 
     @GetMapping(value = "/profile/internal/users/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    UserProfileResponse getProfileByUserId(@PathVariable("userId") String userId);
+    UserProfileResponse getProfileByUserId(@PathVariable String userId);
 
     @PostMapping(value = "/profile/internal/users/by-ids", produces = MediaType.APPLICATION_JSON_VALUE)
     List<UserProfileResponse> getProfilesByUserIds(@RequestBody List<String> userIds);
 
     @PutMapping(value = "/profile/internal/users/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
     UserProfileResponse updateProfileByUserId(
-            @PathVariable("userId") String userId, @RequestBody ProfileUpdateRequest profileUpdateRequest);
+            @PathVariable String userId, @RequestBody ProfileUpdateRequest profileUpdateRequest);
 }
