@@ -1,6 +1,6 @@
 package com.hanguyen.identity.entity;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 
 import jakarta.persistence.*;
@@ -29,9 +29,8 @@ public class User {
     @ManyToMany
     Set<Role> roles;
 
-    @Column(name = "refresh_token", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     String refreshToken;
 
-    @Column(name = "refresh_token_expiry_time")
-    LocalDateTime refreshTokenExpiryTime;
+    Instant refreshTokenExpiryTime;
 }

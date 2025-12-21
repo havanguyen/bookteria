@@ -1,4 +1,4 @@
-package com.hanguyen.gateway.dto.request;
+package com.hanguyen.identity.utils;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class IntrospectRequest {
+public class TokenInfo {
     String token;
+    String refreshToken;
 }

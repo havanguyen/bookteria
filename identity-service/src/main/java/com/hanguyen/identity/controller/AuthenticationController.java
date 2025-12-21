@@ -1,7 +1,5 @@
 package com.hanguyen.identity.controller;
 
-import java.text.ParseException;
-
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -9,9 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.hanguyen.identity.dto.request.*;
 import com.hanguyen.identity.dto.response.AuthenticationResponse;
-import com.hanguyen.identity.dto.response.IntrospectResponse;
 import com.hanguyen.identity.service.AuthenticationService;
-import com.nimbusds.jose.JOSEException;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -38,13 +34,6 @@ public class AuthenticationController {
         AuthenticationResponse result = authenticationService.outboundAuthenticate(code);
         setCookies(response, result);
         return ApiResponse.<AuthenticationResponse>builder().result(result).build();
-    }
-
-    @PostMapping("/introspect")
-    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request)
-            throws ParseException, JOSEException {
-        var result = authenticationService.introspect(request);
-        return ApiResponse.<IntrospectResponse>builder().result(result).build();
     }
 
     @PostMapping("/refresh")

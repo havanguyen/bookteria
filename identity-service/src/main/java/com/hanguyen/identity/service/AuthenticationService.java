@@ -4,10 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HexFormat;
@@ -34,13 +31,12 @@ import com.hanguyen.identity.entity.Role;
 import com.hanguyen.identity.entity.User;
 import com.hanguyen.identity.exception.AppException;
 import com.hanguyen.identity.exception.ErrorCode;
-import com.hanguyen.identity.repository.InvalidatedTokenRepository;
-import com.hanguyen.identity.repository.RoleRepository;
 import com.hanguyen.identity.repository.UserRepository;
 import com.hanguyen.identity.repository.httpclient.OutboundIdentityClient;
 import com.hanguyen.identity.repository.httpclient.OutboundUserClient;
 import com.hanguyen.identity.utils.KeyUtils;
 import com.hanguyen.identity.utils.PasswordGenerator;
+import com.hanguyen.identity.utils.TokenInfo;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
@@ -60,17 +56,11 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional
 public class AuthenticationService {
     UserRepository userRepository;
-    InvalidatedTokenRepository invalidatedTokenRepository;
-
     OutboundIdentityClient outboundIdentityClient;
     OutboundUserClient outboundUserClient;
     UserEventProducerService userEventProducerService;
     UserService userService;
-
-    RoleRepository roleRepository;
-
     KeyUtils keyUtils;
-
     StringRedisTemplate redisTemplate;
 
     @NonFinal
@@ -95,19 +85,6 @@ public class AuthenticationService {
 
     @NonFinal
     protected String GRANT_TYPE = "authorization_code";
-
-    public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
-        var token = request.getToken();
-        boolean isValid = true;
-
-        try {
-            verifyToken(token);
-        } catch (AppException e) {
-            isValid = false;
-        }
-
-        return IntrospectResponse.builder().valid(isValid).build();
-    }
 
     public AuthenticationResponse outboundAuthenticate(String code) {
         try {
@@ -182,16 +159,12 @@ public class AuthenticationService {
                     throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
                 }
             } else {
-                log.info(
-                        "User found, generating token for existing user: {}",
-                        user.get().getUsername());
-                User user1 = user.get();
-                tokenInfo = generateToken(user1);
+                tokenInfo = generateToken(user.get());
             }
 
             return AuthenticationResponse.builder()
-                    .token(tokenInfo.token)
-                    .expiryTime(tokenInfo.expiryDate)
+                    .token(tokenInfo.getToken())
+                    .refreshToken(tokenInfo.getRefreshToken())
                     .build();
         } catch (Exception e) {
             log.info("Error has message {}", e.getMessage());
@@ -212,14 +185,35 @@ public class AuthenticationService {
         var token = generateToken(user);
 
         return AuthenticationResponse.builder()
-                .token(token.token)
-                .expiryTime(token.expiryDate)
-                .refreshToken(token.refreshToken)
+                .token(token.getToken())
+                .refreshToken(token.getRefreshToken())
                 .build();
     }
 
     public void logout(LogoutRequest request) {
-        redisTemplate.delete(request.getToken());
+        try {
+            var signToken = verifyToken(request.getToken());
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+            String username = signToken.getJWTClaimsSet().getSubject();
+
+            long remainingTime = expiryTime.getTime() - System.currentTimeMillis();
+
+            if (remainingTime > 0) {
+                redisTemplate.opsForValue().set(jit, "", remainingTime, TimeUnit.MILLISECONDS);
+            }
+
+            var user = userRepository
+                    .findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+            user.setRefreshToken(null);
+            user.setRefreshTokenExpiryTime(null);
+            userRepository.save(user);
+
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION);
+        }
     }
 
     public AuthenticationResponse refreshToken(RefreshRequest request) {
@@ -243,7 +237,7 @@ public class AuthenticationService {
         });
 
         if (user.getRefreshTokenExpiryTime() == null
-                || user.getRefreshTokenExpiryTime().isBefore(LocalDateTime.now(ZoneId.of("UTC")))) {
+                || user.getRefreshTokenExpiryTime().isBefore(Instant.now())) {
             log.warn("Refresh token expired");
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
@@ -251,9 +245,8 @@ public class AuthenticationService {
         TokenInfo newTokenInfo = generateToken(user);
 
         return AuthenticationResponse.builder()
-                .token(newTokenInfo.token)
-                .expiryTime(newTokenInfo.expiryDate)
-                .refreshToken(newTokenInfo.refreshToken)
+                .token(newTokenInfo.getToken())
+                .refreshToken(newTokenInfo.getRefreshToken())
                 .build();
     }
 
@@ -262,15 +255,17 @@ public class AuthenticationService {
                 .type(new JOSEObjectType("at+jwt"))
                 .build();
 
-        Date issueTime = Date.from(Instant.now());
-        Date expiryTime = Date.from(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS));
+        Instant issueTime = Instant.now();
+        Instant expiryTime = Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS);
+
+        String jti = UUID.randomUUID().toString();
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getUsername())
                 .issuer("bookteria.click")
-                .issueTime(issueTime)
-                .expirationTime(expiryTime)
-                .jwtID(UUID.randomUUID().toString())
+                .issueTime(Date.from(issueTime))
+                .expirationTime(Date.from(expiryTime))
+                .jwtID(jti)
                 .claim("scope", buildScope(user))
                 .build();
 
@@ -282,21 +277,15 @@ public class AuthenticationService {
             jwsObject.sign(new RSASSASigner(keyUtils.getPrivateKey()));
             String jwt = jwsObject.serialize();
 
-            String referenceToken = UUID.randomUUID().toString();
-            redisTemplate.opsForValue().set(referenceToken, jwt, VALID_DURATION, TimeUnit.SECONDS);
-
             String refreshToken = UUID.randomUUID().toString();
             String refreshTokenHash = computeHash(refreshToken);
 
             user.setRefreshToken(refreshTokenHash);
-            user.setRefreshTokenExpiryTime(LocalDateTime.now(ZoneId.of("UTC")).plusDays(10));
+            user.setRefreshTokenExpiryTime(Instant.now().plus(10, ChronoUnit.DAYS));
             userRepository.save(user);
 
-            log.info("Saved user {} with new refresh token hash", user.getUsername());
-
-            return new TokenInfo(referenceToken, expiryTime, refreshToken);
+            return TokenInfo.builder().token(jwt).refreshToken(refreshToken).build();
         } catch (JOSEException e) {
-            log.error("Cannot create token", e);
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
@@ -311,9 +300,7 @@ public class AuthenticationService {
         }
     }
 
-    public record TokenInfo(String token, Date expiryDate, String refreshToken) {}
-
-    private void verifyToken(String token) throws JOSEException, ParseException {
+    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
         JWSVerifier verifier = new RSASSAVerifier(keyUtils.getPublicKey());
 
         SignedJWT signedJWT = SignedJWT.parse(token);
@@ -324,8 +311,10 @@ public class AuthenticationService {
 
         if (!(verified && expiryTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+        if (redisTemplate.hasKey(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        return signedJWT;
     }
 
     private String buildScope(User user) {
