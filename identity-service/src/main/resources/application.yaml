@@ -1,5 +1,7 @@
 app:
   internal-token: ${APP_INTERNAL_TOKEN}
+  security:
+    cookie-secure: false
 
 eureka:
   client:

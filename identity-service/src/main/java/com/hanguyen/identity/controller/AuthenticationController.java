@@ -1,8 +1,10 @@
 package com.hanguyen.identity.controller;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
 
 import com.hanguyen.identity.dto.request.*;
@@ -12,6 +14,7 @@ import com.hanguyen.identity.service.AuthenticationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 
 @RestController
 @RequestMapping("/auth")
@@ -19,6 +22,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
     AuthenticationService authenticationService;
+
+    @NonFinal
+    @Value("${app.security.cookie-secure}")
+    boolean isCookieSecure;
 
     @PostMapping("/token")
     ApiResponse<AuthenticationResponse> authenticate(
@@ -70,38 +77,46 @@ public class AuthenticationController {
             authenticationService.logout(request);
         }
 
-        Cookie accessCookie = new Cookie("ACCESS_TOKEN", null);
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(true);
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(0);
+        ResponseCookie accessCookie = ResponseCookie.from("ACCESS_TOKEN", "")
+                .httpOnly(true)
+                .secure(isCookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
 
-        Cookie refreshCookie = new Cookie("REFRESH_TOKEN", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
+        ResponseCookie refreshCookie = ResponseCookie.from("REFRESH_TOKEN", "")
+                .httpOnly(true)
+                .secure(isCookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
 
-        response.addCookie(accessCookie);
-        response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return ApiResponse.<Void>builder().build();
     }
 
     private void setCookies(HttpServletResponse response, AuthenticationResponse authResponse) {
-        Cookie accessCookie = new Cookie("ACCESS_TOKEN", authResponse.getToken());
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(true);
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(15 * 60);
+        ResponseCookie accessCookie = ResponseCookie.from("ACCESS_TOKEN", authResponse.getToken())
+                .httpOnly(true)
+                .secure(isCookieSecure)
+                .path("/")
+                .maxAge(15 * 60)
+                .sameSite("Lax")
+                .build();
 
-        Cookie refreshCookie = new Cookie("REFRESH_TOKEN", authResponse.getRefreshToken());
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(10 * 24 * 60 * 60);
+        ResponseCookie refreshCookie = ResponseCookie.from("REFRESH_TOKEN", authResponse.getRefreshToken())
+                .httpOnly(true)
+                .secure(isCookieSecure)
+                .path("/")
+                .maxAge(10 * 24 * 60 * 60)
+                .sameSite("Lax")
+                .build();
 
-        response.addCookie(accessCookie);
-        response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 }
