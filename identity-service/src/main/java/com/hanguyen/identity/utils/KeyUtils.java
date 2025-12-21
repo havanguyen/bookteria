@@ -13,6 +13,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
@@ -36,6 +37,7 @@ public class KeyUtils {
 
     private static final String PUBLIC_KEY_FILE = "app_public_key.der";
     private static final String PRIVATE_KEY_FILE = "app_private_key.der";
+    private final String keyId = UUID.randomUUID().toString();
 
     public KeyUtils() {
         manageKeyPair();
@@ -95,7 +97,7 @@ public class KeyUtils {
         RSAKey.Builder builder = new RSAKey.Builder(publicKey)
                 .keyUse(KeyUse.SIGNATURE)
                 .algorithm(JWSAlgorithm.RS256)
-                .keyID("bookteria-auth-key-id");
+                .keyID(keyId);
         return new JWKSet(builder.build());
     }
 }

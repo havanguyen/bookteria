@@ -1,31 +1,37 @@
 package com.hanguyen.gateway.config;
 
 import java.util.Arrays;
+import java.util.Collections;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.ServerAuthenticationConverter;
+
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
 
 import lombok.experimental.NonFinal;
 import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
+@Slf4j
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String jwkSetUri;
+
+    private final ReactiveStringRedisTemplate redisTemplate;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String issuerUri;
@@ -75,6 +81,7 @@ public class SecurityConfig {
             if (token == null) {
                 var cookie = exchange.getRequest().getCookies().getFirst("ACCESS_TOKEN");
                 if (cookie != null) {
+                    log.info(cookie.getValue());
                     token = cookie.getValue();
                 }
             }
@@ -87,14 +94,38 @@ public class SecurityConfig {
     }
 
     @Bean
-    public ReactiveJwtDecoder jwtDecoder(JtiBlacklistValidator blacklistValidator) {
-        NimbusReactiveJwtDecoder jwtDecoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri).build();
+    public ReactiveJwtDecoder jwtDecoder() {
+        log.info("jwkSetUri : {}", jwkSetUri);
+        log.info("issuerUri : {}", issuerUri);
 
-        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
-        OAuth2TokenValidator<Jwt> withBlacklist = new DelegatingOAuth2TokenValidator<>(withIssuer, blacklistValidator);
+        NimbusReactiveJwtDecoder jwtDecoder = NimbusReactiveJwtDecoder.withJwkSetUri(jwkSetUri)
+                .jwtProcessorCustomizer(processor -> {
+                    processor.setJWSTypeVerifier(
+                            new DefaultJOSEObjectTypeVerifier<>(new JOSEObjectType("at+jwt"), JOSEObjectType.JWT,
+                                    null));
+                })
+                .build();
 
-        jwtDecoder.setJwtValidator(withBlacklist);
+        jwtDecoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(issuerUri));
 
-        return jwtDecoder;
+        return token -> jwtDecoder.decode(token)
+                .doOnError(e -> {
+                    if (e instanceof JwtValidationException jwtException) {
+                        jwtException.getErrors().forEach(error -> log.error("   >> Chi tiết lỗi: {} - {}",
+                                error.getErrorCode(), error.getDescription()));
+                    }
+                })
+
+                .flatMap(jwt -> redisTemplate.hasKey(jwt.getId())
+                        .doOnError(e -> log.error("❌ Lỗi kết nối Redis: {}", e.getMessage()))
+
+                        .flatMap(isBlacklisted -> {
+                            if (Boolean.TRUE.equals(isBlacklisted)) {
+                                return Mono.error(new JwtValidationException(
+                                        "Token is blacklisted",
+                                        Collections.emptyList()));
+                            }
+                            return Mono.just(jwt);
+                        }));
     }
 }
