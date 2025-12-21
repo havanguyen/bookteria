@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.hanguyen.profile.dto.request.ProfileUpdateRequest;
 import com.hanguyen.profile.dto.response.ApiResponse;
 import com.hanguyen.profile.dto.response.UserProfileResponse;
-import com.hanguyen.profile.service.UserProfileRService;
+import com.hanguyen.profile.service.UserProfileService;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserProfileController {
 
-    UserProfileRService userProfileRService;
+    UserProfileService userProfileRService;
 
     @GetMapping("/users/{profileId}")
     ApiResponse<UserProfileResponse> getProfile(@PathVariable String profileId) {

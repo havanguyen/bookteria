@@ -2,3 +2,5 @@ target/
 config-server/src/main/resources/
 .env
 .env_deploy
+app_private_key.der
+app_public_key.der

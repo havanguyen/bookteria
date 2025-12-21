@@ -1,0 +1,9 @@
+{
+    "shippingAddress": {
+        "city": "New York",
+        "commune": "Manhattan",
+        "stress": "123 Main St"
+    },
+    "ipAddress": "127.0.0.1",
+    "note": "Please deliver quickly"
+}

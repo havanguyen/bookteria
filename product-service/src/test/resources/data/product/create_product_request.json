@@ -1,0 +1,22 @@
+{
+    "title": "Clean Code",
+    "slug": "clean-code",
+    "isbn": "978-0132350884",
+    "description": "A Handbook of Agile Software Craftsmanship",
+    "imageUrl": "https://example.com/clean-code.jpg",
+    "publicationDate": "2008-08-01",
+    "pageCount": 464,
+    "basePrice": 30.00,
+    "salePrice": 25.00,
+    "saleStartDate": "2024-01-01T00:00:00Z",
+    "saleEndDate": "2024-12-31T23:59:59Z",
+    "attributes": {
+        "cover": "Hardcover"
+    },
+    "authorId": "a1",
+    "publisherId": "p1",
+    "categoryIds": [
+        "c1",
+        "c2"
+    ]
+}

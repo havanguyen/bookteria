@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import com.hanguyen.profile.dto.request.ProfileCreationRequest;
 import com.hanguyen.profile.dto.request.ProfileUpdateRequest;
 import com.hanguyen.profile.dto.response.UserProfileResponse;
-import com.hanguyen.profile.service.UserProfileRService;
+import com.hanguyen.profile.service.UserProfileService;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class InternalUserProfileController {
 
-    UserProfileRService userProfileRService;
+    UserProfileService userProfileRService;
 
     @PostMapping("/internal/users")
     UserProfileResponse creationProfile(@RequestBody ProfileCreationRequest profileCreationRequest) {

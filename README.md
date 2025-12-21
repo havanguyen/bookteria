@@ -1,143 +1,155 @@
-# Bookteria - Microservices E-commerce Platform
+# Bookteria - Enterprise Microservices E-commerce Platform
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Java](https://img.shields.io/badge/Java-17-orange)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
-[![Documentation](https://img.shields.io/badge/Wiki-DeepWiki-blue)](https://deepwiki.com/havanguyen/bookteria)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
+[![Java](https://img.shields.io/badge/Java-17-orange)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green)](https://spring.io/projects/spring-boot)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-blue)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
-## Introduction
+**Bookteria** is a robust, cloud-native e-commerce application built with a microservices architecture. Designed for high availability and scalability, it leverages the power of Spring Boot, Spring Cloud, and modern containerization technologies to deliver a seamless online bookstore experience.
 
-**Bookteria** is a high-performance, distributed e-commerce platform designed for scalability and resilience. Built on top of the Spring Boot ecosystem, it employs a microservices architecture to handle complex business domains including inventory management, order processing, and secure payments.
+---
 
-## 🚀 Quick Links
+## 📑 Table of Contents
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Technology Stack](#-technology-stack)
+- [Services Ecosystem](#-services-ecosystem)
+- [Getting Started](#-getting-started)
+- [API Documentation](#-api-documentation)
+- [Monitoring](#-monitoring)
+- [Project Structure](#-project-structure)
+- [License](#-license)
 
-- **Frontend Application**: [bookteria.click](https://bookteria.click)
-- **API Gateway**: [api.bookteria.click](https://api.bookteria.click)
-- **Project Wiki & Documentation**: [deepwiki.com/havanguyen/bookteria](https://deepwiki.com/havanguyen/bookteria)
-- - **Monitor by dozzle**: [dozzle](http://44.228.171.35:8888)
+---
+
+## ✨ Features
+
+- **User Authentication**: Secure signup and login with JWT and OAuth2 support.
+- **Product Catalog**: Browse and search books with advanced filtering (powered by Elasticsearch).
+- **Shopping Cart**: Real-time cart management using Redis.
+- **Order Management**: Complete order lifecycle from placement to payment and shipping.
+- **Inventory Tracking**: Accurate stock management with concurrency handling.
+- **Secure Payments**: Integrated payment processing system.
+- **Notifications**: Automated email and SMS blocks for order updates.
+- **Admin Dashboard**: Comprehensive management of users, products, and orders.
+
+---
 
 ## 🏗 Architecture
 
-The Bookteria platform follows a domain-driven design (DDD) approach, decomposing the application into self-contained services.
+Bookteria follows a **Domain-Driven Design (DDD)** approach, isolating business logic into distinct, loosely coupled services.
 
-### High-Level Design
+### Key Patterns
+- **API Gateway**: Single entry point using Spring Cloud Gateway.
+- **Service Discovery**: Netflix Eureka for dynamic service registration.
+- **Circuit Breaker**: Resilience4j for fault tolerance.
+- **Event-Driven**: Asynchronous communication via Kafka and RabbitMQ.
 
-```mermaid
-graph TD
-    User((User)) -->|HTTPS| Frontend[Frontend App\nbookteria.click]
-    User -->|HTTPS| Gateway[API Gateway\napi.bookteria.click]
-    
-    subgraph "Edge Layer"
-        Gateway
-    end
-    
-    subgraph "Core Services"
-        Gateway --> Identity[Identity Service\n(Auth & User Mgmt)]
-        Gateway --> Product[Product Service\n(Catalog & Search)]
-        Gateway --> Order[Order Service\n(Order Lifecycle)]
-        Gateway --> Cart[Cart Service\n(Shopping Cart)]
-        Gateway --> Profile[Profile Service\n(User Preferences)]
-    end
-    
-    subgraph "Support Services"
-        Order --> Inventory[Inventory Service\n(Stock Mgmt)]
-        Order --> Payment[Payment Service\n(Transactons)]
-        Payment --> Notification[Notification Service\n(Email/SMS)]
-        Gateway --> File[File Service\n(Media Storage)]
-    end
-    
-    subgraph "Data & Infra"
-        Identity -.-> Keycloak[Keycloak/OAuth2]
-        Product -.-> Elastic[Elasticsearch]
-        Services -.-> Kafka[Kafka Event Bus]
-        Services -.-> Zipkin[Zipkin Tracing]
-    end
-```
-
-### Key Architectural Patterns
-- **API Gateway Pattern**: The `api-gateway` acts as the single entry point, handling routing, rate limiting, and security.
-- **Service Discovery**: All services register with `discovery-server` (Eureka) for dynamic load balancing.
-- **Event-Driven Architecture**: Asynchronous communication via **Kafka** and **RabbitMQ** ensures loose coupling between services (e.g., Order Placed -> Inventory Reserved -> Email Sent).
-- **Centralized Configuration**: Configuration is managed centrally (implied via Spring Cloud Config or env vars).
-- **Distributed Tracing**: Integrated with **Zipkin** for tracking requests across microservices.
+---
 
 ## 🛠 Technology Stack
 
-### Backend
-- **Language**: Java 17
-- **Framework**: Spring Boot 3.x
-- **Cloud Native**: Spring Cloud (Gateway, Eureka, OpenFeign, Resilience4j)
-- **Security**: OAuth2, OIDC, JWT (Identity Service)
+| Category | Technologies |
+|----------|--------------|
+| **Backend** | Java 17, Spring Boot 3, Spring Cloud |
+| **Frontend** | Vue 3, TailwindCSS |
+| **Databases** | MySQL, MongoDB, Redis, PostgreSQL |
+| **Messaging** | Apache Kafka, RabbitMQ |
+| **Search** | Elasticsearch 8.x |
+| **DevOps** | Docker, Docker Compose, GitHub Actions |
+| **Monitoring** | Spring Boot Actuator, Dozzle |
 
-### Data & Messaging
-- **Relational DBs**: MySQL, PostgreSQL (Service specific)
-- **NoSQL**: MongoDB (Product/Catalog), Neo4j (Recommendations/Social), Redis (Caching)
-- **Message Brokers**: Apache Kafka, RabbitMQ
-- **Search Engine**: Elasticsearch 8.x
+---
 
-### DevOps & Infrastructure
-- **Containerization**: Docker, Docker Compose
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus, Grafana
+## 📦 Services Ecosystem
 
-## 📦 Services Overview
+| Service Name | Port | Description |
+|--------------|------|-------------|
+| **Discovery Server** | 8761 | Service registry & health monitoring |
+| **API Gateway** | 9000 | Centralized routing & security |
+| **Identity Service** | 8080 | AuthN & AuthZ (OIDC/OAuth2) |
+| **Product Service** | 8082 | Catalog management |
+| **Search Service** | 8083 | Advanced search capabilities |
+| **Inventory Service**| 8084 | Stock management |
+| **Cart Service** | 8085 | Session-based shopping carts |
+| **Order Service** | 8086 | Order processing saga |
+| **Payment Service** | 8087 | Payment gateway handling |
+| **Notification** | 8088 | Email/SMS alerts |
+| **File Service** | 8089 | Media asset storage |
 
-| Service | Port | Key Responsibilities |
-|---------|------|----------------------|
-| **Discovery Server** | 8761 | Service registry (Eureka). |
-| **API Gateway** | 9000 | Routing, SSL termination, Auth headers. |
-| **Identity Service** | 8080 | User registration, login, token generation. |
-| **Profile Service** | 8081 | User profile data, address management. |
-| **Product Service** | 8082 | Book catalog, categories, ratings. |
-| **Search Service** | 8083 | Full-text search, filtering, aggregation. |
-| **Inventory Service** | 8084 | Real-time stock tracking, reservations. |
-| **Cart Service** | 8085 | Temporary cart storage (Redis backed). |
-| **Order Service** | 8086 | Order state machine, saga orchestration. |
-| **Payment Service** | 8087 | Payment gateway integration. |
-| **Notification Service** | 8088 | Async email/push notifications. |
-| **File Service** | 8089 | S3/Local file storage for book covers. |
+---
 
-## 🏁 Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- **Java 17** SDK
-- **Docker Desktop** (or Docker Engine + Compose)
-- **Maven** 3.8+
+- **Java 17+**
+- **Docker & Docker Compose**
+- **Maven 3.8+**
+- **Node.js 18+** (for frontend)
 
-### Local Setup
+### Installation
 
-1. **Clone the Repository**
+1. **Clone the repository**
    ```bash
    git clone https://github.com/havanguyen/bookteria.git
    cd bookteria
    ```
 
-2. **Environment Configuration**
-   The project uses a `.env` file for managing secrets and ports.
+2. **Configure Environment**
+   Create a `.env` file in the root directory. You can copy the template if available, or ensure the following variables are set (especially `DOCKER_USERNAME` for image pulling):
    ```bash
-   # Ensure .env exists in the root
-   cat .env
+   # Example .env content
+   DOCKER_USERNAME=your_dockerhub_username
+   # Add other secrets (DB passwords, API keys)
    ```
 
-3. **Start with Docker Compose**
-   This will spin up all microservices and infrastructure dependencies (Databases, Brokers, etc.).
+3. **Start Infrastructure & Services**
+   Use Docker Compose to bring up the entire stack.
    ```bash
    docker-compose up -d
    ```
+   *Note: This may take a few minutes to download images and start all containers.*
 
-4. **Access the Application**
-   - **Frontend**: [http://localhost:3000](http://localhost:3000) (if running locally) or [bookteria.click](https://bookteria.click)
+4. **Verify Deployment**
+   - **Frontend**: [http://localhost:3000](http://localhost:3000)
    - **API Gateway**: [http://localhost:9000](http://localhost:9000)
    - **Eureka Dashboard**: [http://localhost:8761](http://localhost:8761)
 
+---
+
 ## 📚 API Documentation
 
-The API is documented using OpenAPI/Swagger. You can access the aggregated documentation via the Gateway or individual services.
+Centralized API documentation is available via Swagger UI through the API Gateway:
 
-- **Aggregated Swagger UI**: [http://localhost:9000/webjars/swagger-ui/index.html](http://localhost:9000/webjars/swagger-ui/index.html)
-- **Public API Endpoint**: `https://api.bookteria.click`
+- **Swagger UI**: [http://localhost:9000/webjars/swagger-ui/index.html](http://localhost:9000/webjars/swagger-ui/index.html)
+- **Live API**: `https://api.bookteria.click`
+
+---
+
+## 🔍 Monitoring
+
+- **Container Logs (Dozzle)**: [http://localhost:8888](http://localhost:8888)
+- **Health Checks**: Each service exposes `/actuator/health` and `/actuator/info`.
+
+---
+
+## 📂 Project Structure
+
+```bash
+bookteria/
+├── .github/              # CI/CD Workflows
+├── api-gateway/          # Spring Cloud Gateway
+├── discovery-server/     # Eureka Server
+├── identity-service/     # Auth Service
+├── product-service/      # Product Catalog
+├── ...                   # Other microservices
+├── docker-compose.yml    # Orchestration
+└── README.md             # Documentation
+```
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**.

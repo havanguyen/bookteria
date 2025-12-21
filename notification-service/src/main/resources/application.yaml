@@ -96,3 +96,11 @@ brevo:
     email-sender: ${NOTIFICATION_SERVICE_BREVO_EMAIL_SENDER}
     api-url: ${NOTIFICATION_SERVICE_BREVO_API_URL}
     brevo: ${NOTIFICATION_SERVICE_BREVO_API_KEY}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

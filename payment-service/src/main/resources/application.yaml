@@ -102,3 +102,11 @@ vnpay:
   apiUrl: ${PAYMENT_SERVICE_VNPAY_API_URL}
   returnUrl: ${PAYMENT_SERVICE_VNPAY_RETURN_URL}
   ipnUrl: ${PAYMENT_SERVICE_VNPAY_IPN_URL}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

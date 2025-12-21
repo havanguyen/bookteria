@@ -63,3 +63,11 @@ cloudinary:
   cloud_name: ${FILE_SERVICE_CLOUDINARY_CLOUD_NAME}
   api_key: ${FILE_SERVICE_CLOUDINARY_API_KEY}
   api_secret: ${FILE_SERVICE_CLOUDINARY_API_SECRET}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

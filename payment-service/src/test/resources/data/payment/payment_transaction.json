@@ -1,0 +1,7 @@
+{
+    "id": "tx1",
+    "orderId": "order1",
+    "externalTransactionId": "123456",
+    "amount": 100.0,
+    "paymentStatus": "PENDING"
+}

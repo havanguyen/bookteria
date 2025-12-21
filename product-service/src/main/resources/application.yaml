@@ -82,3 +82,11 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${IDENTITY_SERVICE_JWK_URI}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

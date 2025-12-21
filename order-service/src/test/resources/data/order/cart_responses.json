@@ -1,0 +1,11 @@
+[
+    {
+        "productResponse": {
+            "id": "prod1",
+            "title": "Clean Code",
+            "basePrice": 30.0,
+            "salePrice": 25.0
+        },
+        "quantity": 2
+    }
+]
