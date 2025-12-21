@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse> handleValidationException(MethodArgumentNotValidException ex) {
 
         String enumKey = ErrorCode.INVALID_KEY.name();
-        Map attributes = null;
+        Map<String, Object> attributes = null;
 
         var fieldError = ex.getFieldError();
         if (fieldError != null) {

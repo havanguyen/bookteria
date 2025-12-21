@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import jakarta.validation.ConstraintViolation;
 
-
 import java.util.Map;
 import java.util.Objects;
 
@@ -54,22 +53,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     ResponseEntity<ApiResponse> handlingValidation(MethodArgumentNotValidException exception) {
-        String enumKey = exception.getFieldError().getDefaultMessage();
+        String enumKey = exception.getFieldError() != null ? exception.getFieldError().getDefaultMessage()
+                : ErrorCode.INVALID_KEY.name();
 
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
-        Map attributes = null;
+        Map<String, Object> attributes = null;
         try {
-            errorCode = ErrorCode.valueOf(enumKey);
+            if (enumKey != null) {
+                errorCode = ErrorCode.valueOf(enumKey);
+            }
 
-            var constraintViolation =
-                    exception.getBindingResult().getAllErrors().getFirst().unwrap(ConstraintViolation.class);
+            var constraintViolation = exception.getBindingResult().getAllErrors().getFirst()
+                    .unwrap(ConstraintViolation.class);
 
             attributes = constraintViolation.getConstraintDescriptor().getAttributes();
 
             log.info(attributes.toString());
 
         } catch (IllegalArgumentException e) {
-
+            log.warn("Failed to parse error code: {}", enumKey, e);
         }
 
         ApiResponse apiResponse = new ApiResponse();
